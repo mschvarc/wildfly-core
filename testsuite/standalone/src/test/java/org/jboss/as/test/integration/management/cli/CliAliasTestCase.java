@@ -38,10 +38,11 @@ public class CliAliasTestCase {
     @Before
     public void setup() {
         // to avoid the need to reset the terminal manually after the tests, e.g. 'stty sane'
-        String property1 = System.getProperty("aesh.terminal");
+        /*String property1 = System.getProperty("aesh.terminal");
         String property2 = System.getProperty("aesh.aliasFile");
-
+        */
         System.setProperty("aesh.terminal", "org.jboss.aesh.terminal.TestTerminal");
+
     }
 
 
@@ -76,16 +77,20 @@ public class CliAliasTestCase {
 
         // to avoid the need to reset the terminal manually after the tests, e.g. 'stty sane'
         System.setProperty("aesh.terminal", "org.jboss.aesh.terminal.TestTerminal");
-        System.setProperty("aesh.inputrc", TMP_AESH_RC.toPath().toString());
+        /*System.setProperty("aesh.inputrc", TMP_AESH_RC.toPath().toString());
         System.setProperty("aesh.aliasFile", TMP_AESH_ALIAS.toPath().toString());
-        System.setProperty("aesh.readinputrc", "true");
+        System.setProperty("aesh.readinputrc", "true");*/
     }
 
 
+    /**
+     * Tests the alias command for the following naming pattern: [a-zA-Z0-9_]+
+     * @throws Exception
+     */
     @Test
     public void testValidAliasCommandInteractive() throws Exception {
-        final String VALID_ALIAS_NAME = "TMP_DEBUG_ALIAS";
-        final String VALID_ALIAS_COMMAMND = "'/subsystem=undertow:read-resource'";
+        final String VALID_ALIAS_NAME = "TMP123_DEBUG456__ALIAS789___";
+        final String VALID_ALIAS_COMMAND = "'/subsystem=undertow:read-resource'";
 
         CliProcessWrapper cli = new CliProcessWrapper()
                 .addCliArgument("--connect")
@@ -97,38 +102,40 @@ public class CliAliasTestCase {
         try {
             cli.executeInteractive("alias");
             assertFalse(cli.getOutput().contains(VALID_ALIAS_NAME));
-            assertFalse(cli.getOutput().contains(VALID_ALIAS_COMMAMND));
+            assertFalse(cli.getOutput().contains(VALID_ALIAS_COMMAND));
             String firstout = cli.getOutput();
 
-            cli.pushLineAndWaitForResults("alias " + VALID_ALIAS_NAME + "=" + VALID_ALIAS_COMMAMND);
+            cli.pushLineAndWaitForResults("alias " + VALID_ALIAS_NAME + "=" + VALID_ALIAS_COMMAND);
             String aliasingResult = cli.getOutput();
             cli.clearOutput();
 
             cli.pushLineAndWaitForResults("alias");
             String allAliases = cli.getOutput().replaceAll("\r", "");
             assertTrue(allAliases.contains(VALID_ALIAS_NAME));
-            assertTrue(allAliases.contains(VALID_ALIAS_COMMAMND));
+            assertTrue(allAliases.contains(VALID_ALIAS_COMMAND));
 
             cli.pushLineAndWaitForResults("unalias " + VALID_ALIAS_NAME);
             cli.clearOutput();
             cli.pushLineAndWaitForResults("alias");
             String allAliasesCleared = cli.getOutput().replaceAll("\r", "");
             assertFalse(allAliasesCleared.contains(VALID_ALIAS_NAME));
-
         } finally {
             cli.destroyProcess();
         }
     }
 
     /**
-     * NOTE: should this test fail in the future, see https://issues.jboss.org/browse/JBEAP-5009 and change accordingly
+     * Tests for alias command containing invalid symbols in the name, should not set invalid alias
+     * NOTE: if this test fails in the future, see:
+     * https://issues.jboss.org/browse/JBEAP-5009
+     * https://issues.jboss.org/browse/JBEAP-4938
      *
      * @throws Exception
      */
     @Test
     public void testInvalidAliasCommandInteractive() throws Exception {
-        final String INVALID_ALIAS_NAME = "TMP_DEBUG-ALIAS"; //minus sign does not match allowed name pattern
-        final String INVALID_ALIAS_COMMAMND = "'/subsystem=undertow:read-resource'";
+        final String INVALID_ALIAS_NAME = "TMP-DEBUG-INVALID-ALIAS"; //minus sign does not match allowed name pattern
+        final String INVALID_ALIAS_COMMAND = "'/subsystem=undertow:read-resource'";
 
         CliProcessWrapper cli = new CliProcessWrapper()
                 .addCliArgument("--connect")
@@ -136,20 +143,18 @@ public class CliAliasTestCase {
         try {
             cli.executeInteractive("alias");
             assertFalse(cli.getOutput().contains(INVALID_ALIAS_NAME));
-            assertFalse(cli.getOutput().contains(INVALID_ALIAS_COMMAMND));
+            assertFalse(cli.getOutput().contains(INVALID_ALIAS_COMMAND));
 
-            cli.pushLineAndWaitForResults("alias " + INVALID_ALIAS_NAME + "=" + INVALID_ALIAS_COMMAMND);
+            cli.pushLineAndWaitForResults("alias " + INVALID_ALIAS_NAME + "=" + INVALID_ALIAS_COMMAND);
             cli.clearOutput();
             cli.pushLineAndWaitForResults("alias");
             String allAliases = cli.getOutput().replaceAll("\r", "");
             assertFalse(allAliases.contains(INVALID_ALIAS_NAME));
-            assertFalse(allAliases.contains(INVALID_ALIAS_COMMAMND));
+            assertFalse(allAliases.contains(INVALID_ALIAS_COMMAND));
         } finally {
             cli.destroyProcess();
         }
     }
-
-
 }
 
 
