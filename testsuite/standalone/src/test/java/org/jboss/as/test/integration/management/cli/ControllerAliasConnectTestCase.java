@@ -22,12 +22,10 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 /**
- *
  * @author Martin Schvarcbacher
  *
  * https://issues.jboss.org/browse/JBEAP-5009 //limitations [a-zA-Z0-9_]+ only var names
  * https://issues.jboss.org/browse/JBEAP-3164
- *
  */
 @RunWith(WildflyTestRunner.class)
 public class ControllerAliasConnectTestCase {
@@ -56,7 +54,7 @@ public class ControllerAliasConnectTestCase {
             writer.newLine();
             writer.write("<host>localhost</host>");
             writer.newLine();
-            writer.write("<port>"+INVALID_PORT+"</port>");
+            writer.write("<port>" + INVALID_PORT + "</port>");
             writer.newLine();
             writer.write("</default-controller> ");
             writer.write("<controllers>");
@@ -87,7 +85,6 @@ public class ControllerAliasConnectTestCase {
     }
 
 
-
     @Before
     public void assertInvalidDefaultConfiguration() throws Exception {
         CliProcessWrapper cli = new CliProcessWrapper()
@@ -103,7 +100,6 @@ public class ControllerAliasConnectTestCase {
     /**
      * Tests connection to a controller aliased in jboss-cli.xml
      * using --controller=MyController
-     * @throws Exception
      */
     @Test
     public void testConnectToAliasedControllerMinus() throws Exception {
@@ -114,13 +110,12 @@ public class ControllerAliasConnectTestCase {
                 .addCliArgument("--echo-command")
                 .addCliArgument("--commands=:read-attribute(name=server-state)");
         cli.executeNonInteractive();
-        checkServerConnected(cli.getOutput());
+        assertServerConnected(cli.getOutput());
     }
 
     /**
      * Tests connection to a controller aliased in jboss-cli.xml
-     * with controller=MyController
-     * @throws Exception
+     * using controller=MyController
      */
     @Test
     public void testConnectToAliasedController() throws Exception {
@@ -131,14 +126,13 @@ public class ControllerAliasConnectTestCase {
                 .addCliArgument("--echo-command")
                 .addCliArgument("--commands=:read-attribute(name=server-state)");
         cli.executeNonInteractive();
-        checkServerConnected(cli.getOutput());
+        assertServerConnected(cli.getOutput());
     }
 
-    private void checkServerConnected(String output)
-    {
-        String expectedPrompt = "@" + TestSuiteEnvironment.getServerAddress() + ":" + TestSuiteEnvironment.getServerPort();
+    private void assertServerConnected(String output) {
+        String expected = "@" + TestSuiteEnvironment.getServerAddress() + ":" + TestSuiteEnvironment.getServerPort();
         assertTrue(output.contains("\"outcome\" => \"success\""));
-        assertTrue(output.contains(expectedPrompt));
+        assertTrue(output.contains(expected));
         assertFalse(output.contains("[disconnected /]"));
         assertFalse(output.contains("fail"));
     }
