@@ -1,6 +1,5 @@
 package org.jboss.as.test.integration.management.cli;
 
-
 import org.jboss.as.test.shared.TestSuiteEnvironment;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -30,7 +29,7 @@ public class CliAliasTestCase {
     private static final File TMP_AESH_ALIAS;
 
     static {
-        TMP_AESH_RC = new File(new File(TestSuiteEnvironment.getTmpDir()), "tmp-aesh-rc");
+        TMP_AESH_RC = new File(new File(TestSuiteEnvironment.getTmpDir()), ".tmp-aesh-rc");
         TMP_AESH_ALIAS = new File(new File(TestSuiteEnvironment.getTmpDir()), "tmp-aesh-alias");
     }
 
@@ -38,11 +37,14 @@ public class CliAliasTestCase {
     @Before
     public void setup() {
         // to avoid the need to reset the terminal manually after the tests, e.g. 'stty sane'
-        /*String property1 = System.getProperty("aesh.terminal");
+        String property1 = System.getProperty("aesh.terminal");
         String property2 = System.getProperty("aesh.aliasFile");
-        */
-        System.setProperty("aesh.terminal", "org.jboss.aesh.terminal.TestTerminal");
 
+        System.setProperty("aesh.terminal", "org.jboss.aesh.terminal.TestTerminal");
+        System.setProperty("aesh.inputrc", TMP_AESH_RC.toPath().toString());
+        System.setProperty("aesh.aliasFile", TMP_AESH_ALIAS.toPath().toString());
+        System.setProperty("aesh.readinputrc", "true");
+        System.setProperty("aesh.persistAlias", "false");
     }
 
 
@@ -77,9 +79,10 @@ public class CliAliasTestCase {
 
         // to avoid the need to reset the terminal manually after the tests, e.g. 'stty sane'
         System.setProperty("aesh.terminal", "org.jboss.aesh.terminal.TestTerminal");
-        /*System.setProperty("aesh.inputrc", TMP_AESH_RC.toPath().toString());
+        System.setProperty("aesh.inputrc", TMP_AESH_RC.toPath().toString());
         System.setProperty("aesh.aliasFile", TMP_AESH_ALIAS.toPath().toString());
-        System.setProperty("aesh.readinputrc", "true");*/
+        System.setProperty("aesh.readinputrc", "true");
+        System.setProperty("aesh.persistAlias", "false");
     }
 
 
@@ -89,20 +92,20 @@ public class CliAliasTestCase {
      */
     @Test
     public void testValidAliasCommandInteractive() throws Exception {
-        final String VALID_ALIAS_NAME = "TMP123_DEBUG456__ALIAS789___";
+        final String VALID_ALIAS_NAME = "TMP123_DEBUG456__ALIAS789__";
         final String VALID_ALIAS_COMMAND = "'/subsystem=undertow:read-resource'";
 
         CliProcessWrapper cli = new CliProcessWrapper()
-                .addCliArgument("--connect")
-                .addCliArgument("--controller=" + TestSuiteEnvironment.getServerAddress() + ":" + (TestSuiteEnvironment.getServerPort()))
-                /*.addCliArgument("-Daesh.terminal=org.jboss.aesh.terminal.TestTerminal")
+                .addCliArgument("-Daesh.terminal=org.jboss.aesh.terminal.TestTerminal")
                 .addCliArgument("-Daesh.inputrc=" + TMP_AESH_RC.toPath().toString())
                 .addJavaOption("-Daesh.terminal=org.jboss.aesh.terminal.TestTerminal")
-                .addJavaOption("-Daesh.inputrc=" + TMP_AESH_RC.toPath().toString())*/;
+                .addJavaOption("-Daesh.inputrc=" + TMP_AESH_RC.toPath().toString())
+                .addJavaOption("-Daesh.persistAlias=false")
+                ;
         try {
-            cli.executeInteractive("alias");
+            cli.executeInteractive();
+            cli.pushLineAndWaitForResults("alias");
             assertFalse(cli.getOutput().contains(VALID_ALIAS_NAME));
-            assertFalse(cli.getOutput().contains(VALID_ALIAS_COMMAND));
             String firstout = cli.getOutput();
 
             cli.pushLineAndWaitForResults("alias " + VALID_ALIAS_NAME + "=" + VALID_ALIAS_COMMAND);
@@ -119,7 +122,10 @@ public class CliAliasTestCase {
             cli.pushLineAndWaitForResults("alias");
             String allAliasesCleared = cli.getOutput().replaceAll("\r", "");
             assertFalse(allAliasesCleared.contains(VALID_ALIAS_NAME));
-        } finally {
+        } catch (Exception ex){
+            fail(ex.getLocalizedMessage());
+        }
+        finally {
             cli.destroyProcess();
         }
     }
@@ -134,24 +140,41 @@ public class CliAliasTestCase {
      */
     @Test
     public void testInvalidAliasCommandInteractive() throws Exception {
-        final String INVALID_ALIAS_NAME = "TMP-DEBUG-INVALID-ALIAS"; //minus sign does not match allowed name pattern
-        final String INVALID_ALIAS_COMMAND = "'/subsystem=undertow:read-resource'";
+        final String INVALID_ALIAS_NAME = "TMP-DEBUG123-INVALID456-ALIAS789";
+        final String INVALID_ALIAS_COMMAND = "'/class=notfound:read-invalid-command'";
 
         CliProcessWrapper cli = new CliProcessWrapper()
-                .addCliArgument("--connect")
-                .addCliArgument("--controller=" + TestSuiteEnvironment.getServerAddress() + ":" + (TestSuiteEnvironment.getServerPort()));
+                .addCliArgument("-Daesh.terminal=org.jboss.aesh.terminal.TestTerminal")
+                //.addCliArgument("-Daesh.inputrc=" + TMP_AESH_RC.toPath().toString())
+                .addJavaOption("-Daesh.terminal=org.jboss.aesh.terminal.TestTerminal")
+                //.addJavaOption("-Daesh.inputrc=" + TMP_AESH_RC.toPath().toString())
+                //.addJavaOption("-Daesh.persistAlias=false")
+                ;
+
         try {
-            cli.executeInteractive("alias");
+            cli.executeInteractive();
+            cli.pushLineAndWaitForResults("alias");
+            String dbg = cli.getOutput();
+            System.err.println(dbg);
             assertFalse(cli.getOutput().contains(INVALID_ALIAS_NAME));
-            assertFalse(cli.getOutput().contains(INVALID_ALIAS_COMMAND));
 
             cli.pushLineAndWaitForResults("alias " + INVALID_ALIAS_NAME + "=" + INVALID_ALIAS_COMMAND);
+            String db2 = cli.getOutput();
             cli.clearOutput();
             cli.pushLineAndWaitForResults("alias");
             String allAliases = cli.getOutput().replaceAll("\r", "");
+            assert true;
             assertFalse(allAliases.contains(INVALID_ALIAS_NAME));
             assertFalse(allAliases.contains(INVALID_ALIAS_COMMAND));
-        } finally {
+        } catch (Exception ex){
+            fail(ex.getLocalizedMessage());
+            CliProcessWrapper cliCleanup = new CliProcessWrapper();
+            cliCleanup.executeInteractive();
+            cliCleanup.pushLineAndWaitForResults("unalias " + INVALID_ALIAS_NAME);
+            cliCleanup.ctrlCAndWaitForClose();
+            cliCleanup.destroyProcess();
+        }
+        finally {
             cli.destroyProcess();
         }
     }
