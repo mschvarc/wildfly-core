@@ -24,7 +24,12 @@ package org.jboss.as.test.integration.management.cli;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import java.io.*;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.OutputStreamWriter;
+import java.io.IOException;
+import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import javax.xml.stream.XMLOutputFactory;
@@ -32,6 +37,7 @@ import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamWriter;
 
 import org.jboss.as.test.shared.TestSuiteEnvironment;
+
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.fail;
 
@@ -49,8 +55,9 @@ import org.wildfly.core.testrunner.WildflyTestRunner;
 public class CliConfigTestCase {
 
     private static final File TMP_JBOSS_CLI_FILE;
-    private static final String SERVER_ALIAS = "Test-Suite_Server-Name";
+    private static final String SERVER_ALIAS = "Test_Suite_Server_Name";
     private static final int INVALID_PORT = TestSuiteEnvironment.getServerPort() - 2;
+
     static {
         TMP_JBOSS_CLI_FILE = new File(TestSuiteEnvironment.getTmpDir(), "tmp-jboss-cli.xml");
     }
@@ -138,7 +145,7 @@ public class CliConfigTestCase {
     }
 
     private static File createScript() {
-         File f = new File(TestSuiteEnvironment.getTmpDir(), "test-script" +
+        File f = new File(TestSuiteEnvironment.getTmpDir(), "test-script" +
                 System.currentTimeMillis() + ".cli");
         f.deleteOnExit();
         try (Writer stream = Files.newBufferedWriter(f.toPath(), StandardCharsets.UTF_8)) {
@@ -170,7 +177,7 @@ public class CliConfigTestCase {
             stream.write("/system-property=finally:remove()\n");
             stream.write("/system-property=finally2:remove()\n");
         } catch (IOException ex) {
-           fail("Failure creating script file " + ex);
+            fail("Failure creating script file " + ex);
         }
         return f;
     }
@@ -200,7 +207,8 @@ public class CliConfigTestCase {
     }
 
     /**
-     * Default controller should attempt connection to invalid port
+     * Default controller from jboss-cli.xml should be invalid
+     *
      * @throws Exception
      */
     @Test
@@ -213,21 +221,19 @@ public class CliConfigTestCase {
             String output = cli.getOutput();
             assertTrue(output.contains("Failed to connect to the controller"));
             assertTrue(output.contains("The connection failed"));
-        }
-        finally {
+        } finally {
             cli.destroyProcess();
         }
     }
 
     /**
-     * Tests connection to a controller aliased in jboss-cli.xml
-     * using controller=MyController
+     * Tests connection to a controller aliased in jboss-cli.xml using --controller
      */
     @Test
     public void testConnectToAliasedController() throws Exception {
         CliProcessWrapper cli = new CliProcessWrapper()
                 .addCliArgument("-Djboss.cli.config=" + TMP_JBOSS_CLI_FILE.toPath())
-                .addCliArgument("controller=" + SERVER_ALIAS)
+                .addCliArgument("--controller=" + SERVER_ALIAS)
                 .addCliArgument("--connect")
                 .addCliArgument("--echo-command")
                 .addCliArgument("--command=:read-attribute(name=server-state)");
@@ -239,8 +245,7 @@ public class CliConfigTestCase {
             assertTrue(output.contains(expected));
             assertFalse(output.contains("[disconnected /]"));
             assertFalse(output.contains("fail"));
-        }
-        finally {
+        } finally {
             cli.destroyProcess();
         }
     }

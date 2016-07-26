@@ -22,8 +22,6 @@
 
 package org.jboss.as.test.integration.management.cli;
 
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -52,7 +50,7 @@ import static org.junit.Assert.fail;
 @RunWith(WildflyTestRunner.class)
 public class CliAliasTestCase {
 
-    private static final String VALID_ALIAS_NAME = "TMP123_DEBUG456__ALIASVALID789__";
+    private static final String VALID_ALIAS_NAME = "TMP123_DEBUG456__ALIAS_VALID789__";
     private static final String VALID_ALIAS_COMMAND = "'/subsystem=undertow:read-resource'";
 
     @Rule
@@ -114,7 +112,6 @@ public class CliAliasTestCase {
                 .addJavaOption("-Duser.home=" + tempUserHome.getRoot().toPath().toString())
                 .addCliArgument("-Duser.home=" + tempUserHome.getRoot().toPath().toString());
         try {
-
             cli.executeInteractive();
             cli.pushLineAndWaitForResults("alias");
             assertFalse(cli.getOutput().contains(INVALID_ALIAS_NAME));
@@ -180,7 +177,7 @@ public class CliAliasTestCase {
         List<String> aliasesInFile = Files.readAllLines(aliasFile.toPath(), Charset.defaultCharset());
         boolean found = false;
         for (String line : aliasesInFile) {
-            if (line.contains("alias ") && line.contains(VALID_ALIAS_NAME)  && line.contains(VALID_ALIAS_COMMAND)) {
+            if (line.contains("alias " + VALID_ALIAS_NAME + "=" + VALID_ALIAS_COMMAND)) {
                 found = true;
                 break;
             }
