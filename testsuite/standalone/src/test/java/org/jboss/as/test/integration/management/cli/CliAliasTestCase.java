@@ -22,16 +22,13 @@
 
 package org.jboss.as.test.integration.management.cli;
 
-import org.jboss.as.test.shared.TestSuiteEnvironment;
+import org.apache.commons.io.FileUtils;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.wildfly.core.testrunner.WildflyTestRunner;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -43,24 +40,25 @@ import static org.junit.Assert.fail;
 
 /**
  * Tests the 'alias' and 'unalias' command in interactive mode of jboss-cli
+ *
  * @author Martin Schvarcbacher
  */
 @RunWith(WildflyTestRunner.class)
 public class CliAliasTestCase {
 
-    //@Rule
-    //public TemporaryFolder tempUserHome = new TemporaryFolder();
-    private static Path tempUserHome;
+    private Path tempUserHome;
 
     @Before
     public void setupTempFolder() throws IOException {
-        tempUserHome = Files.createTempDirectory("jboss-cli");
+        tempUserHome = Files.createTempDirectory("jboss-cli-testing");
     }
 
     @After
-    public void cleanup()
-    {
-
+    public void cleanup() {
+        try {
+            FileUtils.deleteDirectory(tempUserHome.toFile());
+        } catch (IOException e) {
+        }
     }
 
     /**
@@ -75,8 +73,8 @@ public class CliAliasTestCase {
 
         CliProcessWrapper cli = new CliProcessWrapper()
                 .addCliArgument("-Daesh.terminal=org.jboss.aesh.terminal.TestTerminal")
-                .addJavaOption("-Duser.home="+ tempUserHome.toString())
-                .addCliArgument("-Duser.home="+ tempUserHome.toString());
+                .addJavaOption("-Duser.home=" + tempUserHome.toString())
+                .addCliArgument("-Duser.home=" + tempUserHome.toString());
         try {
             cli.executeInteractive();
             cli.pushLineAndWaitForResults("alias");
@@ -112,12 +110,12 @@ public class CliAliasTestCase {
      */
     @Test
     public void testInvalidAliasCommandInteractive() throws Exception {
-        final String INVALID_ALIAS_NAME = "TMP-DEBUG123-#INVALID456-ALIAS789";
+        final String INVALID_ALIAS_NAME = "TMP-*DEBUG123-#INVALID456-ALIAS789";
         final String INVALID_ALIAS_COMMAND = "'/class=notfound:read-invalid-command'";
         CliProcessWrapper cli = new CliProcessWrapper()
                 .addCliArgument("-Daesh.terminal=org.jboss.aesh.terminal.TestTerminal")
-                .addJavaOption("-Duser.home="+ tempUserHome.toAbsolutePath().toString())
-                .addCliArgument("-Duser.home="+ tempUserHome.toAbsolutePath().toString());
+                .addJavaOption("-Duser.home=" + tempUserHome.toAbsolutePath().toString())
+                .addCliArgument("-Duser.home=" + tempUserHome.toAbsolutePath().toString());
         try {
             cli.executeInteractive();
             cli.pushLineAndWaitForResults("alias");
