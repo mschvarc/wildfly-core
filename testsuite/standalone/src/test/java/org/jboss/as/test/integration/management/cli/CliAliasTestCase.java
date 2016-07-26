@@ -22,16 +22,19 @@
 
 package org.jboss.as.test.integration.management.cli;
 
-import org.jboss.as.cli.CommandContext;
-import org.jboss.as.test.integration.management.util.CLITestUtil;
 import org.jboss.as.test.shared.TestSuiteEnvironment;
-import org.junit.*;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.wildfly.core.testrunner.WildflyTestRunner;
 
-import java.io.*;
+import java.io.File;
+import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -39,61 +42,26 @@ import static org.junit.Assert.fail;
 
 
 /**
+ * Tests the 'alias' and 'unalias' command in interactive mode of jboss-cli
  * @author Martin Schvarcbacher
  */
 @RunWith(WildflyTestRunner.class)
 public class CliAliasTestCase {
 
-    private static final File TMP_AESH_RC;
-    private static final File TMP_AESH_ALIAS;
+    //@Rule
+    //public TemporaryFolder tempUserHome = new TemporaryFolder();
+    private static Path tempUserHome;
 
-    static {
-        TMP_AESH_RC = new File(new File(TestSuiteEnvironment.getTmpDir()), ".tmp-aesh-rc");
-        TMP_AESH_ALIAS = new File(new File(TestSuiteEnvironment.getTmpDir()), "tmp-aesh-alias");
+    @Before
+    public void setupTempFolder() throws IOException {
+        tempUserHome = Files.createTempDirectory("jboss-cli");
     }
 
-    @Rule
-    public TemporaryFolder tempUserHome = new TemporaryFolder();
+    @After
+    public void cleanup()
+    {
 
-
-    protected static void ensureRemoved(File f) {
-        if (f.exists()) {
-            if (!f.delete()) {
-                fail("Failed to delete " + f.getAbsolutePath());
-            }
-        }
     }
-
-    @AfterClass
-    public static void cleanUpconfig() {
-        ensureRemoved(TMP_AESH_ALIAS);
-    }
-
-
-    @BeforeClass
-    public static void setupConfig() {
-        ensureRemoved(TMP_AESH_RC);
-        ensureRemoved(TMP_AESH_ALIAS);
-
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(TMP_AESH_RC))) {
-            writer.write("aliasFile=" + TMP_AESH_ALIAS);
-            writer.newLine();
-            writer.write("persistAlias=false");
-            writer.newLine();
-
-            Files.createFile(TMP_AESH_ALIAS.toPath());
-        } catch (IOException e) {
-            fail(e.getLocalizedMessage());
-        }
-
-        // to avoid the need to reset the terminal manually after the tests, e.g. 'stty sane'
-        System.setProperty("aesh.terminal", "org.jboss.aesh.terminal.TestTerminal");
-        System.setProperty("aesh.inputrc", TMP_AESH_RC.toPath().toString());
-        System.setProperty("aesh.aliasFile", TMP_AESH_ALIAS.toPath().toString());
-        System.setProperty("aesh.readinputrc", "true");
-        System.setProperty("aesh.persistAlias", "false");
-    }
-
 
     /**
      * Tests the alias command for the following naming pattern: [a-zA-Z0-9_]+
@@ -113,7 +81,7 @@ public class CliAliasTestCase {
             cli.executeInteractive();
             cli.pushLineAndWaitForResults("alias");
             assertFalse(cli.getOutput().contains(VALID_ALIAS_NAME));
-
+            assertFalse(cli.getOutput().contains(VALID_ALIAS_COMMAND));
             cli.pushLineAndWaitForResults("alias " + VALID_ALIAS_NAME + "=" + VALID_ALIAS_COMMAND);
             cli.clearOutput();
 
@@ -135,25 +103,26 @@ public class CliAliasTestCase {
     }
 
     /**
-     * Tests for alias command containing invalid symbols in the name
-     * NOTE: if this test fails in the future, see:
-     * https://issues.jboss.org/browse/JBEAP-5009
-     * https://issues.jboss.org/browse/JBEAP-4938
+     * Tests alias command containing invalid symbols in the name
+     * NOTE: if this test fails in the future:
+     * <a href="https://issues.jboss.org/browse/JBEAP-5009">JBEAP-5009</a>
+     * <a href="https://issues.jboss.org/browse/JBEAP-4938">JBEAP-4938</a>
      *
      * @throws Exception
      */
     @Test
     public void testInvalidAliasCommandInteractive() throws Exception {
-        final String INVALID_ALIAS_NAME = "TMP-DEBUG123-INVALID456-ALIAS789";
+        final String INVALID_ALIAS_NAME = "TMP-DEBUG123-#INVALID456-ALIAS789";
         final String INVALID_ALIAS_COMMAND = "'/class=notfound:read-invalid-command'";
         CliProcessWrapper cli = new CliProcessWrapper()
                 .addCliArgument("-Daesh.terminal=org.jboss.aesh.terminal.TestTerminal")
-                .addJavaOption("-Duser.home="+ tempUserHome.toString())
-                .addCliArgument("-Duser.home="+ tempUserHome.toString());
+                .addJavaOption("-Duser.home="+ tempUserHome.toAbsolutePath().toString())
+                .addCliArgument("-Duser.home="+ tempUserHome.toAbsolutePath().toString());
         try {
             cli.executeInteractive();
             cli.pushLineAndWaitForResults("alias");
             assertFalse(cli.getOutput().contains(INVALID_ALIAS_NAME));
+            assertFalse(cli.getOutput().contains(INVALID_ALIAS_COMMAND));
             cli.pushLineAndWaitForResults("alias " + INVALID_ALIAS_NAME + "=" + INVALID_ALIAS_COMMAND);
             cli.clearOutput();
             cli.pushLineAndWaitForResults("alias");

@@ -44,8 +44,8 @@ import static org.junit.Assert.fail;
 
 
 /**
+ * Tests the support of user defined controller aliases defined in jboss-cli.xml
  * @author Martin Schvarcbacher
- * https://issues.jboss.org/browse/JBEAP-3164
  */
 @RunWith(WildflyTestRunner.class)
 public class ControllerAliasTestCase {
