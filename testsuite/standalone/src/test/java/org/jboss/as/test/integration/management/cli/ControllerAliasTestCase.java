@@ -1,39 +1,60 @@
+/*
+ * JBoss, Home of Professional Open Source.
+ * Copyright 2016, Red Hat, Inc., and individual contributors
+ * as indicated by the @author tags. See the copyright.txt file in the
+ * distribution for a full listing of individual contributors.
+ *
+ * This is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU Lesser General Public License as
+ * published by the Free Software Foundation; either version 2.1 of
+ * the License, or (at your option) any later version.
+ *
+ * This software is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this software; if not, write to the Free
+ * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+ * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
+ */
+
 package org.jboss.as.test.integration.management.cli;
 
 import org.junit.Before;
 import org.junit.runner.RunWith;
 import org.wildfly.core.testrunner.WildflyTestRunner;
 
-import static org.junit.Assert.*;
-import static org.junit.Assert.fail;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
-import java.io.*;
 
 import org.jboss.as.test.shared.TestSuiteEnvironment;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.OutputStreamWriter;
+import java.io.IOException;
+
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.fail;
+
+
 /**
  * @author Martin Schvarcbacher
- *         <p>
- *         https://issues.jboss.org/browse/JBEAP-5009 //limitations [a-zA-Z0-9_]+ only var names
- *         https://issues.jboss.org/browse/JBEAP-3164
+ * https://issues.jboss.org/browse/JBEAP-3164
  */
 @RunWith(WildflyTestRunner.class)
-public class ControllerAliasConnectTestCase {
+public class ControllerAliasTestCase {
 
     private static final File TMP_JBOSS_CLI_FILE;
     private static final String SERVER_ALIAS = "Test-Suite_Server-Name";
-    private static final String SERVER_ALIAS_INVALID = "Test1#-$Suite2_*Server3-Invalid4\\-Name5";
     private static final int INVALID_PORT = TestSuiteEnvironment.getServerPort() - 2;
-
     static {
-        TMP_JBOSS_CLI_FILE = new File(new File(TestSuiteEnvironment.getTmpDir()), "tmp-jboss-cli.xml");
+        TMP_JBOSS_CLI_FILE = new File(TestSuiteEnvironment.getTmpDir(), "tmp-jboss-cli.xml");
     }
 
     @BeforeClass
@@ -56,12 +77,6 @@ public class ControllerAliasConnectTestCase {
             writer.write("<port>" + TestSuiteEnvironment.getServerPort() + "</port>\n");
             writer.write("</controller>\n");
 
-            writer.write("<controller name=\"" + SERVER_ALIAS_INVALID + "\">\n");
-            writer.write("<protocol>http-remoting</protocol>\n");
-            writer.write("<host>" + TestSuiteEnvironment.getServerAddress() + "</host>\n");
-            writer.write("<port>" + TestSuiteEnvironment.getServerPort() + "</port>\n");
-            writer.write("</controller>\n");
-
             writer.write("</controllers>\n");
             writer.write("</jboss-cli>\n");
         } catch (IOException e) {
@@ -74,11 +89,9 @@ public class ControllerAliasConnectTestCase {
         ensureRemoved(TMP_JBOSS_CLI_FILE);
     }
 
-
     @Before
     public void assertInvalidDefaultConfiguration() throws Exception {
         CliProcessWrapper cli = new CliProcessWrapper()
-                .addJavaOption("-Djboss.cli.config=" + TMP_JBOSS_CLI_FILE.toPath())
                 .addCliArgument("-Djboss.cli.config=" + TMP_JBOSS_CLI_FILE.toPath())
                 .addCliArgument("--connect");
         cli.executeNonInteractive();
@@ -116,24 +129,6 @@ public class ControllerAliasConnectTestCase {
                 .addCliArgument("--echo-command")
                 .addCliArgument("--commands=:read-attribute(name=server-state)");
         cli.executeNonInteractive();
-        assertServerConnected(cli.getOutput());
-    }
-
-    /**
-     * Tests connection to a controller aliased in jboss-cli.xml
-     * using controller=MyController
-     */
-    @Test
-    public void testConnectToInvalidAliasedController() throws Exception {
-        CliProcessWrapper cli = new CliProcessWrapper()
-                .addCliArgument("-Djboss.cli.config=" + TMP_JBOSS_CLI_FILE.toPath())
-                .addCliArgument("--controller=" + SERVER_ALIAS_INVALID)
-                .addCliArgument("--connect")
-                .addCliArgument("--echo-command")
-                .addCliArgument("--commands=:read-attribute(name=server-state)");
-        cli.executeNonInteractive();
-        String output = cli.getOutput();
-        output.toString();
         assertServerConnected(cli.getOutput());
     }
 
