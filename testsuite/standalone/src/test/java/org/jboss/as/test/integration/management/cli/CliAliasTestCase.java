@@ -22,16 +22,22 @@
 
 package org.jboss.as.test.integration.management.cli;
 
-import org.apache.commons.io.FileUtils;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.wildfly.core.testrunner.WildflyTestRunner;
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.OutputStreamWriter;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.nio.file.Files;
-import java.nio.file.Path;
+import java.util.List;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -46,20 +52,12 @@ import static org.junit.Assert.fail;
 @RunWith(WildflyTestRunner.class)
 public class CliAliasTestCase {
 
-    private Path tempUserHome;
+    private static final String VALID_ALIAS_NAME = "TMP123_DEBUG456__ALIASVALID789__";
+    private static final String VALID_ALIAS_COMMAND = "'/subsystem=undertow:read-resource'";
 
-    @Before
-    public void setupTempFolder() throws IOException {
-        tempUserHome = Files.createTempDirectory("jboss-cli-testing");
-    }
+    @Rule
+    public final TemporaryFolder tempUserHome = new TemporaryFolder();
 
-    @After
-    public void cleanup() {
-        try {
-            FileUtils.deleteDirectory(tempUserHome.toFile());
-        } catch (IOException e) {
-        }
-    }
 
     /**
      * Tests the alias command for the following naming pattern: [a-zA-Z0-9_]+
@@ -68,13 +66,12 @@ public class CliAliasTestCase {
      */
     @Test
     public void testValidAliasCommandInteractive() throws Exception {
-        final String VALID_ALIAS_NAME = "TMP123_DEBUG456__ALIASVALID789__";
-        final String VALID_ALIAS_COMMAND = "'/subsystem=undertow:read-resource'";
+
 
         CliProcessWrapper cli = new CliProcessWrapper()
                 .addCliArgument("-Daesh.terminal=org.jboss.aesh.terminal.TestTerminal")
-                .addJavaOption("-Duser.home=" + tempUserHome.toString())
-                .addCliArgument("-Duser.home=" + tempUserHome.toString());
+                .addJavaOption("-Duser.home=" + tempUserHome.getRoot().toPath().toString())
+                .addCliArgument("-Duser.home=" + tempUserHome.getRoot().toPath().toString());
         try {
             cli.executeInteractive();
             cli.pushLineAndWaitForResults("alias");
@@ -114,9 +111,10 @@ public class CliAliasTestCase {
         final String INVALID_ALIAS_COMMAND = "'/class=notfound:read-invalid-command'";
         CliProcessWrapper cli = new CliProcessWrapper()
                 .addCliArgument("-Daesh.terminal=org.jboss.aesh.terminal.TestTerminal")
-                .addJavaOption("-Duser.home=" + tempUserHome.toAbsolutePath().toString())
-                .addCliArgument("-Duser.home=" + tempUserHome.toAbsolutePath().toString());
+                .addJavaOption("-Duser.home=" + tempUserHome.getRoot().toPath().toString())
+                .addCliArgument("-Duser.home=" + tempUserHome.getRoot().toPath().toString());
         try {
+
             cli.executeInteractive();
             cli.pushLineAndWaitForResults("alias");
             assertFalse(cli.getOutput().contains(INVALID_ALIAS_NAME));
@@ -125,6 +123,7 @@ public class CliAliasTestCase {
             cli.clearOutput();
             cli.pushLineAndWaitForResults("alias");
             String allAliases = cli.getOutput().replaceAll("\r", "");
+            //see: https://issues.jboss.org/browse/JBEAP-5009
             assertFalse(allAliases.contains(INVALID_ALIAS_NAME));
             assertFalse(allAliases.contains(INVALID_ALIAS_COMMAND));
             assertTrue(cli.ctrlCAndWaitForClose());
@@ -133,5 +132,59 @@ public class CliAliasTestCase {
         } finally {
             cli.destroyProcess();
         }
+    }
+
+    @Test
+    public void testManuallyAddedAlias() throws Exception {
+        final File aliasFile = tempUserHome.newFile(".aesh_aliases");
+        try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(aliasFile), "UTF-8"))) {
+            writer.write("alias " + VALID_ALIAS_NAME + "=" + VALID_ALIAS_COMMAND);
+            writer.newLine();
+        } catch (IOException ex) {
+            fail(ex.getLocalizedMessage());
+        }
+        CliProcessWrapper cli = new CliProcessWrapper()
+                .addCliArgument("-Daesh.terminal=org.jboss.aesh.terminal.TestTerminal")
+                .addJavaOption("-Duser.home=" + tempUserHome.getRoot().toPath().toString())
+                .addCliArgument("-Duser.home=" + tempUserHome.getRoot().toPath().toString());
+        try {
+            cli.executeInteractive();
+            cli.pushLineAndWaitForResults("alias");
+            String allAliases = cli.getOutput().replaceAll("\r", "");
+            assertTrue(allAliases.contains("alias "));
+            assertTrue(allAliases.contains(VALID_ALIAS_NAME));
+            assertTrue(allAliases.contains(VALID_ALIAS_COMMAND));
+        } catch (Exception ex) {
+            fail(ex.getLocalizedMessage());
+        } finally {
+            cli.destroyProcess();
+        }
+    }
+
+    @Test
+    public void testAliasPersistence() throws Exception {
+        final File aliasFile = tempUserHome.newFile(".aesh_aliases");
+        CliProcessWrapper cli = new CliProcessWrapper()
+                .addCliArgument("-Daesh.terminal=org.jboss.aesh.terminal.TestTerminal")
+                .addJavaOption("-Duser.home=" + tempUserHome.getRoot().toPath().toString())
+                .addCliArgument("-Duser.home=" + tempUserHome.getRoot().toPath().toString());
+        try {
+            cli.executeInteractive();
+            cli.pushLineAndWaitForResults("alias " + VALID_ALIAS_NAME + "=" + VALID_ALIAS_COMMAND);
+            cli.ctrlCAndWaitForClose();
+        } catch (Exception ex) {
+            fail(ex.getLocalizedMessage());
+        } finally {
+            cli.destroyProcess();
+        }
+        List<String> aliasesInFile = Files.readAllLines(aliasFile.toPath(), Charset.defaultCharset());
+        boolean found = false;
+        for (String line : aliasesInFile) {
+            if (line.contains("alias ") && line.contains(VALID_ALIAS_NAME)  && line.contains(VALID_ALIAS_COMMAND)) {
+                found = true;
+                break;
+            }
+        }
+        assertTrue("Alias was not saved to .aesh_aliases", found);
     }
 }
