@@ -54,7 +54,7 @@ public class CliAliasTestCase {
 
     @Rule
     public TemporaryFolder tempUserHome = new TemporaryFolder();
-    
+
 
     protected static void ensureRemoved(File f) {
         if (f.exists()) {
@@ -95,22 +95,6 @@ public class CliAliasTestCase {
     }
 
 
-    @Test
-    public void testTestCase() throws Exception {
-        final String VAR1_NAME = "variable_1";
-        final String VAR1_VALUE = "value_1";
-
-        final ByteArrayOutputStream cliOut = new ByteArrayOutputStream();
-        final CommandContext ctx = CLITestUtil.getCommandContext(cliOut);
-        ctx.connectController();
-
-        ctx.handle("alias " + VAR1_NAME + "=" + VAR1_VALUE);
-        ctx.handle("alias ");
-        String result = cliOut.toString();
-        cliOut.reset();
-    }
-
-
     /**
      * Tests the alias command for the following naming pattern: [a-zA-Z0-9_]+
      *
@@ -118,12 +102,13 @@ public class CliAliasTestCase {
      */
     @Test
     public void testValidAliasCommandInteractive() throws Exception {
-        final String VALID_ALIAS_NAME = "TMP123_DEBUG456__ALIAS789__";
+        final String VALID_ALIAS_NAME = "TMP123_DEBUG456__ALIASVALID789__";
         final String VALID_ALIAS_COMMAND = "'/subsystem=undertow:read-resource'";
 
         CliProcessWrapper cli = new CliProcessWrapper()
                 .addCliArgument("-Daesh.terminal=org.jboss.aesh.terminal.TestTerminal")
-                .addJavaOption("-Duser.home="+ tempUserHome.toString());
+                .addJavaOption("-Duser.home="+ tempUserHome.toString())
+                .addCliArgument("-Duser.home="+ tempUserHome.toString());
         try {
             cli.executeInteractive();
             cli.pushLineAndWaitForResults("alias");
@@ -159,15 +144,15 @@ public class CliAliasTestCase {
      */
     @Test
     public void testInvalidAliasCommandInteractive() throws Exception {
-        final String INVALID_ALIAS_NAME = "OK_ALIAS";//"TMP-DEBUG123-INVALID456-ALIAS789";
+        final String INVALID_ALIAS_NAME = "TMP-DEBUG123-INVALID456-ALIAS789";
         final String INVALID_ALIAS_COMMAND = "'/class=notfound:read-invalid-command'";
         CliProcessWrapper cli = new CliProcessWrapper()
                 .addCliArgument("-Daesh.terminal=org.jboss.aesh.terminal.TestTerminal")
-                .addJavaOption("-Duser.home="+ tempUserHome.toString());
+                .addJavaOption("-Duser.home="+ tempUserHome.toString())
+                .addCliArgument("-Duser.home="+ tempUserHome.toString());
         try {
             cli.executeInteractive();
-            String dbg1 = cli.getOutput();
-            cli.pushLineAndWaitForResults("alias"); //check if alias files does not contain test alias already
+            cli.pushLineAndWaitForResults("alias");
             assertFalse(cli.getOutput().contains(INVALID_ALIAS_NAME));
             cli.pushLineAndWaitForResults("alias " + INVALID_ALIAS_NAME + "=" + INVALID_ALIAS_COMMAND);
             cli.clearOutput();
