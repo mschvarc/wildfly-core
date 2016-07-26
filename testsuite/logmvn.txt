@@ -1,0 +1,175 @@
+[INFO] Scanning for projects...
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Build Order:
+[INFO] 
+[INFO] WildFly: Test Runner
+[INFO] WildFly Core Test Suite: Shared
+[INFO] WildFly Core Test Suite: Aggregator
+[INFO] WildFly Core Test Suite: Standalone Integration Tests
+[INFO]                                                                         
+[INFO] ------------------------------------------------------------------------
+[INFO] Building WildFly: Test Runner 3.0.0.Alpha4-SNAPSHOT
+[INFO] ------------------------------------------------------------------------
+[INFO] 
+[INFO] --- maven-enforcer-plugin:1.4.1:enforce (ban-bad-dependencies) @ wildfly-core-test-runner ---
+[INFO] 
+[INFO] --- maven-enforcer-plugin:1.4.1:enforce (enforce-java-version) @ wildfly-core-test-runner ---
+[INFO] 
+[INFO] --- maven-enforcer-plugin:1.4.1:enforce (enforce-maven-version) @ wildfly-core-test-runner ---
+[INFO] 
+[INFO] --- buildnumber-maven-plugin:1.4:create (get-scm-revision) @ wildfly-core-test-runner ---
+[INFO] Executing: /bin/sh -c cd '/home/mschvarc/Documents/devel/wildfly-core/testsuite/test-runner' && 'git' 'rev-parse' '--verify' 'HEAD'
+[INFO] Working directory: /home/mschvarc/Documents/devel/wildfly-core/testsuite/test-runner
+[INFO] Storing buildNumber: 0a138eb29520628ad2566a33e170428f2e2a207e at timestamp: 1469543217261
+[INFO] Storing buildScmBranch: JBEAP-4976
+[INFO] 
+[INFO] --- maven-resources-plugin:2.7:resources (default-resources) @ wildfly-core-test-runner ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] skip non existing resourceDirectory /home/mschvarc/Documents/devel/wildfly-core/testsuite/test-runner/src/main/resources
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.5.1:compile (default-compile) @ wildfly-core-test-runner ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- maven-checkstyle-plugin:2.17:checkstyle (check-style) @ wildfly-core-test-runner ---
+[INFO] Starting audit...
+Audit done.
+[INFO] 
+[INFO] --- maven-resources-plugin:2.7:testResources (default-testResources) @ wildfly-core-test-runner ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] skip non existing resourceDirectory /home/mschvarc/Documents/devel/wildfly-core/testsuite/test-runner/src/test/resources
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.5.1:testCompile (default-testCompile) @ wildfly-core-test-runner ---
+[INFO] No sources to compile
+[INFO] 
+[INFO] --- maven-surefire-plugin:2.18.1:test (default-test) @ wildfly-core-test-runner ---
+[INFO] No tests to run.
+[INFO] 
+[INFO] --- maven-jar-plugin:2.6:jar (default-jar) @ wildfly-core-test-runner ---
+[INFO] 
+[INFO] --- maven-source-plugin:2.4:jar-no-fork (attach-sources) @ wildfly-core-test-runner ---
+[INFO] Building jar: /home/mschvarc/Documents/devel/wildfly-core/testsuite/test-runner/target/wildfly-core-test-runner-3.0.0.Alpha4-SNAPSHOT-sources.jar
+[INFO] 
+[INFO] --- maven-install-plugin:2.5.2:install (default-install) @ wildfly-core-test-runner ---
+[INFO] Installing /home/mschvarc/Documents/devel/wildfly-core/testsuite/test-runner/target/wildfly-core-test-runner-3.0.0.Alpha4-SNAPSHOT.jar to /home/mschvarc/.m2/repository/org/wildfly/core/wildfly-core-test-runner/3.0.0.Alpha4-SNAPSHOT/wildfly-core-test-runner-3.0.0.Alpha4-SNAPSHOT.jar
+[INFO] Installing /home/mschvarc/Documents/devel/wildfly-core/testsuite/test-runner/pom.xml to /home/mschvarc/.m2/repository/org/wildfly/core/wildfly-core-test-runner/3.0.0.Alpha4-SNAPSHOT/wildfly-core-test-runner-3.0.0.Alpha4-SNAPSHOT.pom
+[INFO] Installing /home/mschvarc/Documents/devel/wildfly-core/testsuite/test-runner/target/wildfly-core-test-runner-3.0.0.Alpha4-SNAPSHOT-sources.jar to /home/mschvarc/.m2/repository/org/wildfly/core/wildfly-core-test-runner/3.0.0.Alpha4-SNAPSHOT/wildfly-core-test-runner-3.0.0.Alpha4-SNAPSHOT-sources.jar
+[INFO]                                                                         
+[INFO] ------------------------------------------------------------------------
+[INFO] Building WildFly Core Test Suite: Shared 3.0.0.Alpha4-SNAPSHOT
+[INFO] ------------------------------------------------------------------------
+[INFO] 
+[INFO] --- maven-enforcer-plugin:1.4.1:enforce (ban-bad-dependencies) @ wildfly-core-testsuite-shared ---
+[INFO] 
+[INFO] --- maven-enforcer-plugin:1.4.1:enforce (enforce-java-version) @ wildfly-core-testsuite-shared ---
+[INFO] 
+[INFO] --- maven-enforcer-plugin:1.4.1:enforce (enforce-maven-version) @ wildfly-core-testsuite-shared ---
+[INFO] 
+[INFO] --- buildnumber-maven-plugin:1.4:create (get-scm-revision) @ wildfly-core-testsuite-shared ---
+[INFO] 
+[INFO] --- maven-resources-plugin:2.7:resources (default-resources) @ wildfly-core-testsuite-shared ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] Copying 1 resource
+[INFO] Copying 14 resources to org
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.5.1:compile (default-compile) @ wildfly-core-testsuite-shared ---
+[INFO] Changes detected - recompiling the module!
+[INFO] Compiling 109 source files to /home/mschvarc/Documents/devel/wildfly-core/testsuite/shared/target/classes
+[INFO] 
+[INFO] --- maven-checkstyle-plugin:2.17:checkstyle (check-style) @ wildfly-core-testsuite-shared ---
+[INFO] Starting audit...
+Audit done.
+[INFO] 
+[INFO] --- maven-resources-plugin:2.7:testResources (default-testResources) @ wildfly-core-testsuite-shared ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] skip non existing resourceDirectory /home/mschvarc/Documents/devel/wildfly-core/testsuite/shared/src/test/resources
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.5.1:testCompile (default-testCompile) @ wildfly-core-testsuite-shared ---
+[INFO] No sources to compile
+[INFO] 
+[INFO] --- maven-surefire-plugin:2.18.1:test (default-test) @ wildfly-core-testsuite-shared ---
+[INFO] No tests to run.
+[INFO] 
+[INFO] --- maven-jar-plugin:2.6:jar (default-jar) @ wildfly-core-testsuite-shared ---
+[INFO] Building jar: /home/mschvarc/Documents/devel/wildfly-core/testsuite/shared/target/wildfly-core-testsuite-shared-3.0.0.Alpha4-SNAPSHOT.jar
+[INFO] 
+[INFO] --- maven-source-plugin:2.4:jar-no-fork (attach-sources) @ wildfly-core-testsuite-shared ---
+[INFO] Building jar: /home/mschvarc/Documents/devel/wildfly-core/testsuite/shared/target/wildfly-core-testsuite-shared-3.0.0.Alpha4-SNAPSHOT-sources.jar
+[INFO] 
+[INFO] --- maven-install-plugin:2.5.2:install (default-install) @ wildfly-core-testsuite-shared ---
+[INFO] Installing /home/mschvarc/Documents/devel/wildfly-core/testsuite/shared/target/wildfly-core-testsuite-shared-3.0.0.Alpha4-SNAPSHOT.jar to /home/mschvarc/.m2/repository/org/wildfly/core/wildfly-core-testsuite-shared/3.0.0.Alpha4-SNAPSHOT/wildfly-core-testsuite-shared-3.0.0.Alpha4-SNAPSHOT.jar
+[INFO] Installing /home/mschvarc/Documents/devel/wildfly-core/testsuite/shared/pom.xml to /home/mschvarc/.m2/repository/org/wildfly/core/wildfly-core-testsuite-shared/3.0.0.Alpha4-SNAPSHOT/wildfly-core-testsuite-shared-3.0.0.Alpha4-SNAPSHOT.pom
+[INFO] Installing /home/mschvarc/Documents/devel/wildfly-core/testsuite/shared/target/wildfly-core-testsuite-shared-3.0.0.Alpha4-SNAPSHOT-sources.jar to /home/mschvarc/.m2/repository/org/wildfly/core/wildfly-core-testsuite-shared/3.0.0.Alpha4-SNAPSHOT/wildfly-core-testsuite-shared-3.0.0.Alpha4-SNAPSHOT-sources.jar
+[INFO]                                                                         
+[INFO] ------------------------------------------------------------------------
+[INFO] Building WildFly Core Test Suite: Aggregator 3.0.0.Alpha4-SNAPSHOT
+[INFO] ------------------------------------------------------------------------
+[INFO] 
+[INFO] --- maven-enforcer-plugin:1.4.1:enforce (ban-bad-dependencies) @ wildfly-core-testsuite ---
+[INFO] 
+[INFO] --- maven-enforcer-plugin:1.4.1:enforce (enforce-java-version) @ wildfly-core-testsuite ---
+[INFO] 
+[INFO] --- maven-enforcer-plugin:1.4.1:enforce (enforce-maven-version) @ wildfly-core-testsuite ---
+[INFO] 
+[INFO] --- buildnumber-maven-plugin:1.4:create (get-scm-revision) @ wildfly-core-testsuite ---
+[INFO] 
+[INFO] --- maven-checkstyle-plugin:2.17:checkstyle (check-style) @ wildfly-core-testsuite ---
+[INFO] 
+[INFO] --- maven-source-plugin:2.4:jar-no-fork (attach-sources) @ wildfly-core-testsuite ---
+[INFO]                                                                         
+[INFO] ------------------------------------------------------------------------
+[INFO] Building WildFly Core Test Suite: Standalone Integration Tests 3.0.0.Alpha4-SNAPSHOT
+[INFO] ------------------------------------------------------------------------
+[INFO] 
+[INFO] --- maven-enforcer-plugin:1.4.1:enforce (ban-bad-dependencies) @ wildfly-core-testsuite-standalone ---
+[INFO] 
+[INFO] --- maven-enforcer-plugin:1.4.1:enforce (enforce-java-version) @ wildfly-core-testsuite-standalone ---
+[INFO] 
+[INFO] --- maven-enforcer-plugin:1.4.1:enforce (enforce-maven-version) @ wildfly-core-testsuite-standalone ---
+[INFO] 
+[INFO] --- buildnumber-maven-plugin:1.4:create (get-scm-revision) @ wildfly-core-testsuite-standalone ---
+[INFO] 
+[INFO] --- maven-resources-plugin:2.7:resources (default-resources) @ wildfly-core-testsuite-standalone ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] skip non existing resourceDirectory /home/mschvarc/Documents/devel/wildfly-core/testsuite/standalone/src/main/resources
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.5.1:compile (default-compile) @ wildfly-core-testsuite-standalone ---
+[INFO] No sources to compile
+[INFO] 
+[INFO] --- maven-checkstyle-plugin:2.17:checkstyle (check-style) @ wildfly-core-testsuite-standalone ---
+[INFO] Starting audit...
+Audit done.
+[INFO] 
+[INFO] --- maven-resources-plugin:2.7:testResources (default-testResources) @ wildfly-core-testsuite-standalone ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] Copying 19 resources
+[INFO] 
+[INFO] --- wildfly-server-provisioning-maven-plugin:1.1.6.Final:build (server-provisioning) @ wildfly-core-testsuite-standalone ---
+[INFO] 
+[INFO] --- maven-antrun-plugin:1.8:run (default) @ wildfly-core-testsuite-standalone ---
+[INFO] Executing tasks
+
+main:
+     [copy] Copying 1 file to /home/mschvarc/Documents/devel/wildfly-core/testsuite/standalone/target/wildfly-core/standalone/configuration
+[INFO] Executed tasks
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.5.1:testCompile (default-testCompile) @ wildfly-core-testsuite-standalone ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- maven-surefire-plugin:2.18.1:test (default-test) @ wildfly-core-testsuite-standalone ---
+[INFO] 
+[INFO] --- maven-source-plugin:2.4:jar-no-fork (attach-sources) @ wildfly-core-testsuite-standalone ---
+[INFO] No sources in project. Archive not created.
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Summary:
+[INFO] 
+[INFO] WildFly: Test Runner ............................... SUCCESS [  2.877 s]
+[INFO] WildFly Core Test Suite: Shared .................... SUCCESS [  5.236 s]
+[INFO] WildFly Core Test Suite: Aggregator ................ SUCCESS [  0.105 s]
+[INFO] WildFly Core Test Suite: Standalone Integration Tests SUCCESS [  2.574 s]
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time: 11.649 s
+[INFO] Finished at: 2016-07-26T16:27:07+02:00
+[INFO] Final Memory: 54M/615M
+[INFO] ------------------------------------------------------------------------
