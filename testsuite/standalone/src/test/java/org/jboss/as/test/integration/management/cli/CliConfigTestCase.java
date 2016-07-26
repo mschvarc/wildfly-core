@@ -24,7 +24,10 @@ package org.jboss.as.test.integration.management.cli;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.OutputStreamWriter;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
@@ -34,18 +37,60 @@ import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamWriter;
 
 import org.jboss.as.test.shared.TestSuiteEnvironment;
+
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.fail;
+
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.wildfly.core.testrunner.WildflyTestRunner;
 
 /**
- *
  * @author jdenise@redhat.com
+ * @author Martin Schvarcbacher
  */
 @RunWith(WildflyTestRunner.class)
 public class CliConfigTestCase {
+
+    private static final File TMP_JBOSS_CLI_FILE;
+    private static final String SERVER_ALIAS = "Test_Suite_Server_Name";
+    private static final int INVALID_PORT = TestSuiteEnvironment.getServerPort() - 2;
+    static {
+        TMP_JBOSS_CLI_FILE = new File(TestSuiteEnvironment.getTmpDir(), "tmp-jboss-cli.xml");
+    }
+
+    @BeforeClass
+    public static void setup() {
+        ensureRemoved(TMP_JBOSS_CLI_FILE);
+        try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(TMP_JBOSS_CLI_FILE), "UTF-8"))) {
+            writer.write("<?xml version='1.0' encoding='UTF-8'?>\n");
+            writer.write("<jboss-cli xmlns=\"urn:jboss:cli:2.0\">\n");
+            writer.write("<default-protocol  use-legacy-override=\"true\">http-remoting</default-protocol>\n");
+            writer.write("<default-controller>\n");
+            writer.write("<protocol>http-remoting</protocol>\n");
+            writer.write("<host>localhost</host>\n");
+            writer.write("<port>" + INVALID_PORT + "</port>\n");
+            writer.write("</default-controller>\n");
+            writer.write("<controllers>\n");
+            writer.write("<controller name=\"" + SERVER_ALIAS + "\">\n");
+            writer.write("<protocol>http-remoting</protocol>\n");
+            writer.write("<host>" + TestSuiteEnvironment.getServerAddress() + "</host>\n");
+            writer.write("<port>" + TestSuiteEnvironment.getServerPort() + "</port>\n");
+            writer.write("</controller>\n");
+            writer.write("</controllers>\n");
+            writer.write("</jboss-cli>\n");
+        } catch (IOException e) {
+            fail(e.getLocalizedMessage());
+        }
+    }
+
+    @AfterClass
+    public static void cleanUp() {
+        ensureRemoved(TMP_JBOSS_CLI_FILE);
+    }
+
     @Test
     public void testEchoCommand() throws Exception {
         File f = createConfigFile(true);
@@ -99,7 +144,7 @@ public class CliConfigTestCase {
     }
 
     private static File createScript() {
-         File f = new File(TestSuiteEnvironment.getTmpDir(), "test-script" +
+        File f = new File(TestSuiteEnvironment.getTmpDir(), "test-script" +
                 System.currentTimeMillis() + ".cli");
         f.deleteOnExit();
         try (Writer stream = Files.newBufferedWriter(f.toPath(), StandardCharsets.UTF_8)) {
@@ -131,7 +176,7 @@ public class CliConfigTestCase {
             stream.write("/system-property=finally:remove()\n");
             stream.write("/system-property=finally2:remove()\n");
         } catch (IOException ex) {
-           fail("Failure creating script file " + ex);
+            fail("Failure creating script file " + ex);
         }
         return f;
     }
@@ -158,5 +203,60 @@ public class CliConfigTestCase {
             fail("Failure creating config file " + ex);
         }
         return f;
+    }
+
+    /**
+     * Default controller from jboss-cli.xml should be invalid
+     * @throws Exception
+     */
+    @Test
+    public void testInvalidDefaultConfiguration() throws Exception {
+        CliProcessWrapper cli = new CliProcessWrapper()
+                .addCliArgument("-Djboss.cli.config=" + TMP_JBOSS_CLI_FILE.toPath())
+                .addCliArgument("--connect");
+        try {
+            cli.executeNonInteractive();
+            String output = cli.getOutput();
+            assertTrue(output.contains("Failed to connect to the controller"));
+            assertTrue(output.contains("The connection failed"));
+          } catch (Exception ex) {
+              fail(ex.getLocalizedMessage());
+          } finally {
+            cli.destroyProcess();
+        }
+    }
+
+    /**
+     * Tests connection to a controller aliased in jboss-cli.xml using --controller
+     */
+    @Test
+    public void testConnectToAliasedController() throws Exception {
+        CliProcessWrapper cli = new CliProcessWrapper()
+                .addCliArgument("-Djboss.cli.config=" + TMP_JBOSS_CLI_FILE.toPath())
+                .addCliArgument("--controller=" + SERVER_ALIAS)
+                .addCliArgument("--connect")
+                .addCliArgument("--echo-command")
+                .addCliArgument("--command=:read-attribute(name=server-state)");
+        try {
+            cli.executeNonInteractive();
+            String output = cli.getOutput();
+            String expected = "@" + TestSuiteEnvironment.getServerAddress() + ":" + TestSuiteEnvironment.getServerPort();
+            assertTrue(output.contains("\"outcome\" => \"success\""));
+            assertTrue(output.contains(expected));
+            assertFalse(output.contains("[disconnected /]"));
+            assertFalse(output.contains("fail"));
+          } catch (Exception ex) {
+              fail(ex.getLocalizedMessage());
+          } finally {
+            cli.destroyProcess();
+        }
+    }
+
+    protected static void ensureRemoved(File f) {
+        if (f.exists()) {
+            if (!f.delete()) {
+                fail("Failed to delete " + f.getAbsolutePath());
+            }
+        }
     }
 }
