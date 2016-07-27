@@ -32,9 +32,8 @@ import java.nio.file.Files;
 import javax.xml.stream.XMLOutputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamWriter;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+
+import org.junit.*;
 import org.junit.runner.RunWith;
 import org.wildfly.core.testrunner.WildflyTestRunner;
 import org.jboss.as.test.shared.TestSuiteEnvironment;
@@ -51,31 +50,45 @@ import static org.junit.Assert.assertTrue;
 @RunWith(WildflyTestRunner.class)
 public class CliConfigTestCase {
 
-    private static final File TMP_JBOSS_CLI_FILE;
     private static final String SERVER_ALIAS = "Test_Suite_Server_Name";
     private static final int INVALID_PORT = TestSuiteEnvironment.getServerPort() - 2;
-    static {
-        TMP_JBOSS_CLI_FILE = new File(TestSuiteEnvironment.getTmpDir(), "tmp-jboss-cli.xml");
+    private File TMP_JBOSS_CLI_FILE;
+
+    @Before
+    public void createEmptyJbossConfig() throws IOException {
+        TMP_JBOSS_CLI_FILE = File.createTempFile("tmp-jboss-cli", ".xml");
     }
 
-    @BeforeClass
-    public static void setup() {
+    @After
+    public void cleanupJbossConfig() {
         ensureRemoved(TMP_JBOSS_CLI_FILE);
-        try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(TMP_JBOSS_CLI_FILE), "UTF-8"))) {
+    }
+
+
+    private void setupJbossCliConfig(ConnectionProtocols connectionProtocol, Integer port) {
+
+        try (BufferedWriter writer = new BufferedWriter(
+                new OutputStreamWriter(new FileOutputStream(TMP_JBOSS_CLI_FILE), "UTF-8"))) {
             writer.write("<?xml version='1.0' encoding='UTF-8'?>\n");
             writer.write("<jboss-cli xmlns=\"urn:jboss:cli:2.0\">\n");
             writer.write("<default-protocol  use-legacy-override=\"true\">http-remoting</default-protocol>\n");
             writer.write("<default-controller>\n");
-            writer.write("<protocol>http-remoting</protocol>\n");
+            writer.write("<protocol>" + ConnectionProtocols.REMOTE + "</protocol>\n");
             writer.write("<host>localhost</host>\n");
             writer.write("<port>" + INVALID_PORT + "</port>\n");
             writer.write("</default-controller>\n");
+
             writer.write("<controllers>\n");
             writer.write("<controller name=\"" + SERVER_ALIAS + "\">\n");
-            writer.write("<protocol>http-remoting</protocol>\n");
+            if (connectionProtocol != null) {
+                writer.write("<protocol>" + connectionProtocol + "</protocol>\n");
+            }
             writer.write("<host>" + TestSuiteEnvironment.getServerAddress() + "</host>\n");
-            writer.write("<port>" + TestSuiteEnvironment.getServerPort() + "</port>\n");
+            if (port != null) {
+                writer.write("<port>" + port + "</port>\n");
+            }
             writer.write("</controller>\n");
+
             writer.write("</controllers>\n");
             writer.write("</jboss-cli>\n");
         } catch (IOException e) {
@@ -83,10 +96,8 @@ public class CliConfigTestCase {
         }
     }
 
-    @AfterClass
-    public static void cleanUp() {
-        ensureRemoved(TMP_JBOSS_CLI_FILE);
-    }
+    private String setupJboss
+
 
     @Test
     public void testEchoCommand() throws Exception {
@@ -204,56 +215,136 @@ public class CliConfigTestCase {
 
     /**
      * Default controller from jboss-cli.xml should be invalid
+     *
      * @throws Exception
      */
     @Test
     public void testInvalidDefaultConfiguration() throws Exception {
+        setupJbossCliConfig(null, null); //only testing default controller
+
         CliProcessWrapper cli = new CliProcessWrapper()
                 .addCliArgument("-Djboss.cli.config=" + TMP_JBOSS_CLI_FILE.toPath())
                 .addCliArgument("--connect");
         try {
             cli.executeNonInteractive();
             String output = cli.getOutput();
-            assertTrue(output.contains("Failed to connect to the controller"));
-            assertTrue(output.contains("The connection failed"));
-          } catch (Exception ex) {
-              fail(ex.getLocalizedMessage());
-          } finally {
+            assertDisconnected(output);
+        } catch (Exception ex) {
+            fail(ex.getLocalizedMessage());
+        } finally {
+            cli.destroyProcess();
+        }
+    }
+
+
+
+    /**
+     * Tests connection to a controller aliased in jboss-cli.xml using --controller, with all options specified
+     */
+    @Test
+    public void testConnectToAliasedController() throws Exception {
+        setupJbossCliConfig(ConnectionProtocols.HTTP_REMOTING, TestSuiteEnvironment.getServerPort());
+        CliProcessWrapper cli = getTestCliProcessWrapper();
+
+        try {
+            cli.executeNonInteractive();
+            String output = cli.getOutput();
+            assertConnected(output);
+        } catch (Exception ex) {
+            fail(ex.getLocalizedMessage());
+        } finally {
             cli.destroyProcess();
         }
     }
 
     /**
-     * Tests connection to a controller aliased in jboss-cli.xml using --controller
+     * Tests connection without specifying port and protocol
      */
     @Test
-    public void testConnectToAliasedController() throws Exception {
+    public void testConnectImplicitSettings() throws Exception {
+        setupJbossCliConfig(null, null);
+        if (TestSuiteEnvironment.getServerPort() != 9990){
+            fail("port not 9990 for testing");
+        }
+
+        CliProcessWrapper cli = getTestCliProcessWrapper();
+        try {
+            cli.executeNonInteractive();
+            String output = cli.getOutput();
+            assertConnected(output);
+        } catch (Exception ex) {
+            fail(ex.getLocalizedMessage());
+        } finally {
+            cli.destroyProcess();
+        }
+    }
+
+    /**
+     * Tests connection with only port specified, protocol is derived from port
+     */
+    @Test
+    public void testProtocolImplicitSettings() throws Exception {
+        setupJbossCliConfig(null, TestSuiteEnvironment.getServerPort());
+        CliProcessWrapper cli = getTestCliProcessWrapper();
+
+        try {
+            cli.executeNonInteractive();
+            String output = cli.getOutput();
+            assertConnected(output);
+        } catch (Exception ex) {
+            fail(ex.getLocalizedMessage());
+        } finally {
+            cli.destroyProcess();
+        }
+    }
+
+    private CliProcessWrapper getTestCliProcessWrapper(){
         CliProcessWrapper cli = new CliProcessWrapper()
                 .addCliArgument("-Djboss.cli.config=" + TMP_JBOSS_CLI_FILE.toPath())
                 .addCliArgument("--controller=" + SERVER_ALIAS)
                 .addCliArgument("--connect")
                 .addCliArgument("--echo-command")
                 .addCliArgument("--command=:read-attribute(name=server-state)");
-        try {
-            cli.executeNonInteractive();
-            String output = cli.getOutput();
-            String expected = "@" + TestSuiteEnvironment.getServerAddress() + ":" + TestSuiteEnvironment.getServerPort();
-            assertTrue(output.contains("\"outcome\" => \"success\""));
-            assertTrue(output.contains(expected));
-            assertFalse(output.contains("[disconnected /]"));
-            assertFalse(output.contains("fail"));
-          } catch (Exception ex) {
-              fail(ex.getLocalizedMessage());
-          } finally {
-            cli.destroyProcess();
-        }
+        return cli;
     }
 
-    protected static void ensureRemoved(File f) {
+    private void assertDisconnected(String output){
+        assertTrue(output.contains("Failed to connect to the controller"));
+        assertTrue(output.contains("The connection failed"));
+        assertFalse(output.contains("standalone@"));
+    }
+
+    private void assertConnected(String output){
+        String expected = "@" + TestSuiteEnvironment.getServerAddress() + ":" + TestSuiteEnvironment.getServerPort();
+        assertTrue(output.contains("\"outcome\" => \"success\""));
+        assertTrue(output.contains(expected));
+        assertFalse(output.contains("[disconnected /]"));
+        assertFalse(output.contains("fail"));
+    }
+
+    private static void ensureRemoved(File f) {
         if (f.exists()) {
             if (!f.delete()) {
                 fail("Failed to delete " + f.getAbsolutePath());
             }
         }
     }
+
+    private enum ConnectionProtocols {
+        REMOTE("remote"),
+        HTTP_REMOTING("http-remoting"),
+        HTTPS_REMOTING("https-remoting");
+
+        private final String protocolName;
+
+        ConnectionProtocols(String protocolName) {
+            this.protocolName = protocolName;
+        }
+
+        @Override
+        public String toString() {
+            return this.protocolName;
+        }
+    }
+
 }
