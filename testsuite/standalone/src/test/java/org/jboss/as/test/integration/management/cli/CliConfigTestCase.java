@@ -65,23 +65,23 @@ public class CliConfigTestCase {
     }
 
 
-    private void setupJbossCliConfig(ConnectionProtocols connectionProtocol, Integer port) {
+        private void setupJbossCliConfig(ConnectionProtocols defaultControllerProtocol, ConnectionProtocols aliasProtocol, Integer port) {
 
         try (BufferedWriter writer = new BufferedWriter(
                 new OutputStreamWriter(new FileOutputStream(TMP_JBOSS_CLI_FILE), "UTF-8"))) {
             writer.write("<?xml version='1.0' encoding='UTF-8'?>\n");
             writer.write("<jboss-cli xmlns=\"urn:jboss:cli:2.0\">\n");
-            writer.write("<default-protocol  use-legacy-override=\"true\">http-remoting</default-protocol>\n");
+            writer.write("<default-protocol  use-legacy-override=\"true\">remoting</default-protocol>\n"); //TODO: WARNING! remoting set!
             writer.write("<default-controller>\n");
-            writer.write("<protocol>" + ConnectionProtocols.REMOTE + "</protocol>\n");
+            writer.write("<protocol>" + defaultControllerProtocol + "</protocol>\n");
             writer.write("<host>localhost</host>\n");
             writer.write("<port>" + INVALID_PORT + "</port>\n");
             writer.write("</default-controller>\n");
 
             writer.write("<controllers>\n");
             writer.write("<controller name=\"" + SERVER_ALIAS + "\">\n");
-            if (connectionProtocol != null) {
-                writer.write("<protocol>" + connectionProtocol + "</protocol>\n");
+            if (aliasProtocol != null) {
+                writer.write("<protocol>" + aliasProtocol + "</protocol>\n");
             }
             writer.write("<host>" + TestSuiteEnvironment.getServerAddress() + "</host>\n");
             if (port != null) {
@@ -95,9 +95,6 @@ public class CliConfigTestCase {
             fail(e.getLocalizedMessage());
         }
     }
-
-    private String setupJboss
-
 
     @Test
     public void testEchoCommand() throws Exception {
@@ -220,7 +217,7 @@ public class CliConfigTestCase {
      */
     @Test
     public void testInvalidDefaultConfiguration() throws Exception {
-        setupJbossCliConfig(null, null); //only testing default controller
+        setupJbossCliConfig(ConnectionProtocols.REMOTE, null, null); //only testing default controller
 
         CliProcessWrapper cli = new CliProcessWrapper()
                 .addCliArgument("-Djboss.cli.config=" + TMP_JBOSS_CLI_FILE.toPath())
@@ -243,9 +240,8 @@ public class CliConfigTestCase {
      */
     @Test
     public void testConnectToAliasedController() throws Exception {
-        setupJbossCliConfig(ConnectionProtocols.HTTP_REMOTING, TestSuiteEnvironment.getServerPort());
+        setupJbossCliConfig(ConnectionProtocols.HTTP_REMOTING, null, TestSuiteEnvironment.getServerPort());
         CliProcessWrapper cli = getTestCliProcessWrapper();
-
         try {
             cli.executeNonInteractive();
             String output = cli.getOutput();
@@ -262,7 +258,7 @@ public class CliConfigTestCase {
      */
     @Test
     public void testConnectImplicitSettings() throws Exception {
-        setupJbossCliConfig(null, null);
+        setupJbossCliConfig(ConnectionProtocols.HTTP_REMOTING, null, null);
         if (TestSuiteEnvironment.getServerPort() != 9990){
             fail("port not 9990 for testing");
         }
@@ -284,9 +280,8 @@ public class CliConfigTestCase {
      */
     @Test
     public void testProtocolImplicitSettings() throws Exception {
-        setupJbossCliConfig(null, TestSuiteEnvironment.getServerPort());
+        setupJbossCliConfig(null, null, null);
         CliProcessWrapper cli = getTestCliProcessWrapper();
-
         try {
             cli.executeNonInteractive();
             String output = cli.getOutput();
@@ -346,5 +341,4 @@ public class CliConfigTestCase {
             return this.protocolName;
         }
     }
-
 }
