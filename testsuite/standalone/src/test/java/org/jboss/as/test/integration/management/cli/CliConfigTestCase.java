@@ -43,6 +43,23 @@ import static org.junit.Assert.fail;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+enum ConnectionProtocols {
+    REMOTE("remote"),
+    HTTP_REMOTING("http-remoting"),
+    HTTPS_REMOTING("https-remoting");
+
+    private final String protocolName;
+
+    ConnectionProtocols(String protocolName) {
+        this.protocolName = protocolName;
+    }
+
+    @Override
+    public String toString() {
+        return this.protocolName;
+    }
+}
+
 /**
  * @author jdenise@redhat.com
  * @author Martin Schvarcbacher
@@ -53,100 +70,15 @@ public class CliConfigTestCase {
     private static final String SERVER_ALIAS = "Test_Suite_Server_Name";
     private static final int INVALID_PORT = TestSuiteEnvironment.getServerPort() - 2;
     private File TMP_JBOSS_CLI_FILE;
-
-    @Before
-    public void createEmptyJbossConfig() throws IOException {
-        TMP_JBOSS_CLI_FILE = File.createTempFile("tmp-jboss-cli", ".xml");
-    }
-
-    @After
-    public void cleanupJbossConfig() {
-        ensureRemoved(TMP_JBOSS_CLI_FILE);
-    }
-
-
-        private void setupJbossCliConfig(ConnectionProtocols defaultControllerProtocol, ConnectionProtocols aliasProtocol, Integer port) {
-
-        try (BufferedWriter writer = new BufferedWriter(
-                new OutputStreamWriter(new FileOutputStream(TMP_JBOSS_CLI_FILE), "UTF-8"))) {
-            writer.write("<?xml version='1.0' encoding='UTF-8'?>\n");
-            writer.write("<jboss-cli xmlns=\"urn:jboss:cli:2.0\">\n");
-            writer.write("<default-protocol  use-legacy-override=\"true\">remoting</default-protocol>\n"); //TODO: WARNING! remoting set!
-            writer.write("<default-controller>\n");
-            writer.write("<protocol>" + defaultControllerProtocol + "</protocol>\n");
-            writer.write("<host>localhost</host>\n");
-            writer.write("<port>" + INVALID_PORT + "</port>\n");
-            writer.write("</default-controller>\n");
-
-            writer.write("<controllers>\n");
-            writer.write("<controller name=\"" + SERVER_ALIAS + "\">\n");
-            if (aliasProtocol != null) {
-                writer.write("<protocol>" + aliasProtocol + "</protocol>\n");
-            }
-            writer.write("<host>" + TestSuiteEnvironment.getServerAddress() + "</host>\n");
-            if (port != null) {
-                writer.write("<port>" + port + "</port>\n");
-            }
-            writer.write("</controller>\n");
-
-            writer.write("</controllers>\n");
-            writer.write("</jboss-cli>\n");
-        } catch (IOException e) {
-            fail(e.getLocalizedMessage());
-        }
-    }
-
-    @Test
-    public void testEchoCommand() throws Exception {
-        File f = createConfigFile(true);
-        CliProcessWrapper cli = new CliProcessWrapper()
-                .setCliConfig(f.getAbsolutePath())
-                .addCliArgument("--command=version");
-        final String result = cli.executeNonInteractive();
-        assertNotNull(result);
-        assertTrue(result, result.contains("[disconnected /] version"));
-    }
-
-    @Test
-    public void testNoEchoCommand() throws Exception {
-        File f = createConfigFile(false);
-        CliProcessWrapper cli = new CliProcessWrapper()
-                .setCliConfig(f.getAbsolutePath())
-                .addCliArgument("--command=version");
-        final String result = cli.executeNonInteractive();
-        assertNotNull(result);
-        assertFalse(result, result.contains("[disconnected /] version"));
-    }
-
-    @Test
-    public void testWorkFlowEchoCommand() throws Exception {
-        File f = createConfigFile(true);
-        File script = createScript();
-        CliProcessWrapper cli = new CliProcessWrapper()
-                .setCliConfig(f.getAbsolutePath())
-                .addCliArgument("--file=" + script.getAbsolutePath())
-                .addCliArgument("--controller=" +
-                        TestSuiteEnvironment.getServerAddress() + ":" +
-                        TestSuiteEnvironment.getServerPort())
-                .addCliArgument("--connect");
-        final String result = cli.executeNonInteractive();
-        assertNotNull(result);
-        assertTrue(result, result.contains(":read-attribute(name=foo)"));
-        assertTrue(result, result.contains("/system-property=catch:add(value=bar)"));
-        assertTrue(result, result.contains("/system-property=finally:add(value=bar)"));
-        assertTrue(result, result.contains("/system-property=finally2:add(value=bar)"));
-        assertTrue(result, result.contains("if (outcome == success) of /system-property=catch:read-attribute(name=value)"));
-        assertTrue(result, result.contains("set prop=Catch\\ block\\ was\\ executed"));
-        assertTrue(result, result.contains("/system-property=finally:write-attribute(name=value, value=if)"));
-
-        assertFalse(result, result.contains("/system-property=catch2:add(value=bar)"));
-        assertFalse(result, result.contains("set prop=Catch\\ block\\ wasn\\'t\\ executed"));
-        assertFalse(result, result.contains("/system-property=finally:write-attribute(name=value, value=else)"));
-
-        assertTrue(result, result.contains("/system-property=catch:remove()"));
-        assertTrue(result, result.contains("/system-property=finally:remove()"));
-        assertTrue(result, result.contains("/system-property=finally2:remove()"));
-    }
+    private ConnectionProtocols DEFAULT_PROTOCOL;
+    private boolean USE_LEGACY_OVERRIDE;
+    private String DEFAULT_CONTROLLER_HOST;
+    private ConnectionProtocols DEFAULT_CONTROLLER_PROTOCOL;
+    private int DEFAULT_CONTROLLER_PORT;
+    private String ALIAS_NAME;
+    private String ALIAS_HOST;
+    private ConnectionProtocols ALIAS_PROTOCOL;
+    private Integer ALIAS_PORT;
 
     private static File createScript() {
         File f = new File(TestSuiteEnvironment.getTmpDir(), "test-script" +
@@ -210,6 +142,143 @@ public class CliConfigTestCase {
         return f;
     }
 
+    private static void ensureRemoved(File f) {
+        if (f.exists()) {
+            if (!f.delete()) {
+                fail("Failed to delete " + f.getAbsolutePath());
+            }
+        }
+    }
+
+    @Test
+    public void testEchoCommand() throws Exception {
+        File f = createConfigFile(true);
+        CliProcessWrapper cli = new CliProcessWrapper()
+                .setCliConfig(f.getAbsolutePath())
+                .addCliArgument("--command=version");
+        final String result = cli.executeNonInteractive();
+        assertNotNull(result);
+        assertTrue(result, result.contains("[disconnected /] version"));
+    }
+
+    @Test
+    public void testNoEchoCommand() throws Exception {
+        File f = createConfigFile(false);
+        CliProcessWrapper cli = new CliProcessWrapper()
+                .setCliConfig(f.getAbsolutePath())
+                .addCliArgument("--command=version");
+        final String result = cli.executeNonInteractive();
+        assertNotNull(result);
+        assertFalse(result, result.contains("[disconnected /] version"));
+    }
+
+    @Test
+    public void testWorkFlowEchoCommand() throws Exception {
+        File f = createConfigFile(true);
+        File script = createScript();
+        CliProcessWrapper cli = new CliProcessWrapper()
+                .setCliConfig(f.getAbsolutePath())
+                .addCliArgument("--file=" + script.getAbsolutePath())
+                .addCliArgument("--controller=" +
+                        TestSuiteEnvironment.getServerAddress() + ":" +
+                        TestSuiteEnvironment.getServerPort())
+                .addCliArgument("--connect");
+        final String result = cli.executeNonInteractive();
+        assertNotNull(result);
+        assertTrue(result, result.contains(":read-attribute(name=foo)"));
+        assertTrue(result, result.contains("/system-property=catch:add(value=bar)"));
+        assertTrue(result, result.contains("/system-property=finally:add(value=bar)"));
+        assertTrue(result, result.contains("/system-property=finally2:add(value=bar)"));
+        assertTrue(result, result.contains("if (outcome == success) of /system-property=catch:read-attribute(name=value)"));
+        assertTrue(result, result.contains("set prop=Catch\\ block\\ was\\ executed"));
+        assertTrue(result, result.contains("/system-property=finally:write-attribute(name=value, value=if)"));
+
+        assertFalse(result, result.contains("/system-property=catch2:add(value=bar)"));
+        assertFalse(result, result.contains("set prop=Catch\\ block\\ wasn\\'t\\ executed"));
+        assertFalse(result, result.contains("/system-property=finally:write-attribute(name=value, value=else)"));
+
+        assertTrue(result, result.contains("/system-property=catch:remove()"));
+        assertTrue(result, result.contains("/system-property=finally:remove()"));
+        assertTrue(result, result.contains("/system-property=finally2:remove()"));
+    }
+
+    @Before
+    public void createEmptyJbossConfig() throws IOException {
+        TMP_JBOSS_CLI_FILE = File.createTempFile("tmp-jboss-cli", ".xml");
+    }
+
+    @After
+    public void cleanupJbossConfig() {
+        ensureRemoved(TMP_JBOSS_CLI_FILE);
+    }
+
+
+
+    //set invalid default controller configuration to ensure all settings are being loaded only from controller aliases
+
+    private void setupJbossCliConfig(/*ConnectionProtocols defaultProtocol,
+                                     boolean useLegacyOverride,
+                                     String defaultControllerHost,
+                                     ConnectionProtocols defaultControllerProtocol,
+                                     int defaultControllerPort,
+
+                                     String aliasName,
+                                     String aliasHost,
+                                     ConnectionProtocols aliasProtocol,
+                                     Integer aliasPort*/) {
+
+        try (BufferedWriter writer = new BufferedWriter(
+                new OutputStreamWriter(new FileOutputStream(TMP_JBOSS_CLI_FILE), "UTF-8"))) {
+            writer.write("<?xml version='1.0' encoding='UTF-8'?>\n");
+            writer.write("<jboss-cli xmlns=\"urn:jboss:cli:2.0\">\n");
+            writer.write("<default-protocol  use-legacy-override=\""+USE_LEGACY_OVERRIDE+"\">"+DEFAULT_PROTOCOL+"</default-protocol>\n");
+
+            writer.write("<default-controller>\n");
+            writer.write("<protocol>" + DEFAULT_CONTROLLER_PROTOCOL + "</protocol>\n");
+            writer.write("<host>localhost</host>\n");
+            writer.write("<port>" + DEFAULT_CONTROLLER_PORT + "</port>\n");
+            writer.write("</default-controller>\n");
+
+            if (ALIAS_NAME != null) {
+                writer.write("<controllers>\n");
+                writer.write("<controller name=\"" + ALIAS_NAME + "\">\n");
+                if (ALIAS_PROTOCOL != null) {
+                    writer.write("<protocol>" + ALIAS_PROTOCOL + "</protocol>\n");
+                }
+                writer.write("<host>" + TestSuiteEnvironment.getServerAddress() + "</host>\n");
+                if (ALIAS_PORT != null) {
+                    writer.write("<port>" + ALIAS_PORT + "</port>\n");
+                }
+                writer.write("</controller>\n");
+                writer.write("</controllers>\n");
+            }
+            writer.write("</jboss-cli>\n");
+        } catch (IOException e) {
+            fail(e.getLocalizedMessage());
+        }
+    }
+
+    private void setInvalidDefaultConfiguration() {
+        DEFAULT_PROTOCOL = ConnectionProtocols.REMOTE;
+        USE_LEGACY_OVERRIDE = true;
+        DEFAULT_CONTROLLER_HOST = TestSuiteEnvironment.getServerAddress();
+        DEFAULT_CONTROLLER_PROTOCOL = ConnectionProtocols.HTTPS_REMOTING;
+        DEFAULT_CONTROLLER_PORT = INVALID_PORT;
+        ALIAS_NAME = null;
+        ALIAS_HOST = null;
+        ALIAS_PROTOCOL = null;
+    }
+    private void setValidDefaultConfiguration() {
+        DEFAULT_PROTOCOL = ConnectionProtocols.HTTP_REMOTING;
+        USE_LEGACY_OVERRIDE = true;
+        DEFAULT_CONTROLLER_HOST = TestSuiteEnvironment.getServerAddress();
+        DEFAULT_CONTROLLER_PROTOCOL = ConnectionProtocols.HTTPS_REMOTING;
+        DEFAULT_CONTROLLER_PORT = INVALID_PORT;
+        ALIAS_NAME = null;
+        ALIAS_HOST = null;
+        ALIAS_PROTOCOL = null;
+    }
+
     /**
      * Default controller from jboss-cli.xml should be invalid
      *
@@ -217,7 +286,9 @@ public class CliConfigTestCase {
      */
     @Test
     public void testInvalidDefaultConfiguration() throws Exception {
-        setupJbossCliConfig(ConnectionProtocols.REMOTE, null, null); //only testing default controller
+        setInvalidDefaultConfiguration();
+
+        setupJbossCliConfig();
 
         CliProcessWrapper cli = new CliProcessWrapper()
                 .addCliArgument("-Djboss.cli.config=" + TMP_JBOSS_CLI_FILE.toPath())
@@ -226,6 +297,8 @@ public class CliConfigTestCase {
             cli.executeNonInteractive();
             String output = cli.getOutput();
             assertDisconnected(output);
+            assertTrue(output.contains(DEFAULT_CONTROLLER_PROTOCOL.toString()));
+            assertTrue(output.contains(":"+DEFAULT_CONTROLLER_PORT));
         } catch (Exception ex) {
             fail(ex.getLocalizedMessage());
         } finally {
@@ -233,15 +306,14 @@ public class CliConfigTestCase {
         }
     }
 
-
-
+    //connect to controller alias with all options (protocol, hostname, port) specified
     /**
      * Tests connection to a controller aliased in jboss-cli.xml using --controller, with all options specified
      */
     @Test
     public void testConnectToAliasedController() throws Exception {
-        setupJbossCliConfig(ConnectionProtocols.HTTP_REMOTING, null, TestSuiteEnvironment.getServerPort());
-        CliProcessWrapper cli = getTestCliProcessWrapper();
+        setupJbossCliConfig();
+        CliProcessWrapper cli = getTestCliProcessWrapper(SERVER_ALIAS);
         try {
             cli.executeNonInteractive();
             String output = cli.getOutput();
@@ -254,16 +326,13 @@ public class CliConfigTestCase {
     }
 
     /**
-     * Tests connection without specifying port and protocol
+     * Tests connection without specifying port and protocol, connects to default controller
      */
     @Test
     public void testConnectImplicitSettings() throws Exception {
-        setupJbossCliConfig(ConnectionProtocols.HTTP_REMOTING, null, null);
-        if (TestSuiteEnvironment.getServerPort() != 9990){
-            fail("port not 9990 for testing");
-        }
+        setupJbossCliConfig();
 
-        CliProcessWrapper cli = getTestCliProcessWrapper();
+        CliProcessWrapper cli = getTestCliProcessWrapper(SERVER_ALIAS);
         try {
             cli.executeNonInteractive();
             String output = cli.getOutput();
@@ -280,8 +349,8 @@ public class CliConfigTestCase {
      */
     @Test
     public void testProtocolImplicitSettings() throws Exception {
-        setupJbossCliConfig(null, null, null);
-        CliProcessWrapper cli = getTestCliProcessWrapper();
+        setupJbossCliConfig();
+        CliProcessWrapper cli = getTestCliProcessWrapper(null);
         try {
             cli.executeNonInteractive();
             String output = cli.getOutput();
@@ -293,13 +362,15 @@ public class CliConfigTestCase {
         }
     }
 
-    private CliProcessWrapper getTestCliProcessWrapper(){
+    private CliProcessWrapper getTestCliProcessWrapper(String connectController){
         CliProcessWrapper cli = new CliProcessWrapper()
                 .addCliArgument("-Djboss.cli.config=" + TMP_JBOSS_CLI_FILE.toPath())
-                .addCliArgument("--controller=" + SERVER_ALIAS)
                 .addCliArgument("--connect")
                 .addCliArgument("--echo-command")
                 .addCliArgument("--command=:read-attribute(name=server-state)");
+        if (connectController != null) {
+            cli.addCliArgument("--controller=" + connectController);
+        }
         return cli;
     }
 
@@ -317,28 +388,37 @@ public class CliConfigTestCase {
         assertFalse(output.contains("fail"));
     }
 
-    private static void ensureRemoved(File f) {
-        if (f.exists()) {
-            if (!f.delete()) {
-                fail("Failed to delete " + f.getAbsolutePath());
-            }
-        }
-    }
 
-    private enum ConnectionProtocols {
-        REMOTE("remote"),
-        HTTP_REMOTING("http-remoting"),
-        HTTPS_REMOTING("https-remoting");
-
-        private final String protocolName;
-
-        ConnectionProtocols(String protocolName) {
-            this.protocolName = protocolName;
-        }
-
-        @Override
-        public String toString() {
-            return this.protocolName;
-        }
-    }
 }
+
+
+/*class CliConfig
+{
+    ConnectionProtocols defaultProtocol;
+    boolean useLegacyOverride;
+
+    String defaultControllerHost;
+    ConnectionProtocols defaultControllerProtocol;
+    int defaultControllerPort;
+
+    String aliasName;
+    String aliasHost;
+    ConnectionProtocols aliasProtocol;
+    Integer aliasPort;
+
+    public CliConfig(CliConfigBuilder builder)
+    {
+
+    }
+
+    public static class CliConfigBuilder
+    {
+        public CliConfigBuilder()
+        {
+        }
+
+
+    }
+
+
+}*/
