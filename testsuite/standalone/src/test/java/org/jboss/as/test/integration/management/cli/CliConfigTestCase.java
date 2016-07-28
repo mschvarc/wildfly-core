@@ -59,23 +59,28 @@ public class CliConfigTestCase {
         TMP_JBOSS_CLI_FILE = File.createTempFile("tmp-jboss-cli", ".xml");
     }
 
+    /*
     @After
     public void cleanupJbossConfig() {
         ensureRemoved(TMP_JBOSS_CLI_FILE);
+    }*/
+
+    private void setupAliasConfig(Protocols defaultControllerProtocol, Protocols aliasProtocol, Integer aliasPort) {
+        setupAliasConfig(defaultControllerProtocol, INVALID_PORT, aliasProtocol, aliasPort);
     }
 
-
-        private void setupJbossCliConfig(ConnectionProtocols defaultControllerProtocol, ConnectionProtocols aliasProtocol, Integer port) {
+        private void setupAliasConfig(Protocols defaultControllerProtocol, int defaultControllerPort, Protocols aliasProtocol, Integer aliasPort) {
 
         try (BufferedWriter writer = new BufferedWriter(
                 new OutputStreamWriter(new FileOutputStream(TMP_JBOSS_CLI_FILE), "UTF-8"))) {
             writer.write("<?xml version='1.0' encoding='UTF-8'?>\n");
             writer.write("<jboss-cli xmlns=\"urn:jboss:cli:2.0\">\n");
-            writer.write("<default-protocol  use-legacy-override=\"true\">remoting</default-protocol>\n"); //TODO: WARNING! remoting set!
+            //HTTPS-REMOTING used as an invalid setting to be overridden
+            writer.write("<default-protocol  use-legacy-override=\"true\">"+ Protocols.HTTPS_REMOTING+"</default-protocol>\n");
             writer.write("<default-controller>\n");
             writer.write("<protocol>" + defaultControllerProtocol + "</protocol>\n");
-            writer.write("<host>localhost</host>\n");
-            writer.write("<port>" + INVALID_PORT + "</port>\n");
+            writer.write("<host>"+TestSuiteEnvironment.getServerAddress()+"</host>\n");
+            writer.write("<port>" + defaultControllerPort + "</port>\n");
             writer.write("</default-controller>\n");
 
             writer.write("<controllers>\n");
@@ -84,8 +89,8 @@ public class CliConfigTestCase {
                 writer.write("<protocol>" + aliasProtocol + "</protocol>\n");
             }
             writer.write("<host>" + TestSuiteEnvironment.getServerAddress() + "</host>\n");
-            if (port != null) {
-                writer.write("<port>" + port + "</port>\n");
+            if (aliasPort != null) {
+                writer.write("<port>" + aliasPort + "</port>\n");
             }
             writer.write("</controller>\n");
 
@@ -210,6 +215,7 @@ public class CliConfigTestCase {
         return f;
     }
 
+    //set invalid default controller configuration to ensure all settings are being loaded only from controller aliases
     /**
      * Default controller from jboss-cli.xml should be invalid
      *
@@ -217,8 +223,7 @@ public class CliConfigTestCase {
      */
     @Test
     public void testInvalidDefaultConfiguration() throws Exception {
-        setupJbossCliConfig(ConnectionProtocols.REMOTE, null, null); //only testing default controller
-
+        setupAliasConfig(Protocols.REMOTE, null, null);
         CliProcessWrapper cli = new CliProcessWrapper()
                 .addCliArgument("-Djboss.cli.config=" + TMP_JBOSS_CLI_FILE.toPath())
                 .addCliArgument("--connect");
@@ -234,14 +239,32 @@ public class CliConfigTestCase {
     }
 
 
+    //connect to controller alias with all options (protocol, hostname, port) specified
+    /**
+     * Tests connection to a controller aliased in jboss-cli.xml using --controller, with all options specified
+     */
+    @Test
+    public void testConnectToAliasedControllerImplicit() throws Exception {
+        setupAliasConfig(Protocols.HTTP_REMOTING, Protocols.HTTP_REMOTING, null);
+        CliProcessWrapper cli = getTestCliProcessWrapper(true);
+        try {
+            cli.executeNonInteractive();
+            String output = cli.getOutput();
+            assertConnected(output);
+        } catch (Exception ex) {
+            fail(ex.getLocalizedMessage());
+        } finally {
+            cli.destroyProcess();
+        }
+    }
 
     /**
      * Tests connection to a controller aliased in jboss-cli.xml using --controller, with all options specified
      */
     @Test
     public void testConnectToAliasedController() throws Exception {
-        setupJbossCliConfig(ConnectionProtocols.HTTP_REMOTING, null, TestSuiteEnvironment.getServerPort());
-        CliProcessWrapper cli = getTestCliProcessWrapper();
+        setupAliasConfig(Protocols.HTTPS_REMOTING, Protocols.HTTP_REMOTING, TestSuiteEnvironment.getServerPort());
+        CliProcessWrapper cli = getTestCliProcessWrapper(true);
         try {
             cli.executeNonInteractive();
             String output = cli.getOutput();
@@ -254,16 +277,12 @@ public class CliConfigTestCase {
     }
 
     /**
-     * Tests connection without specifying port and protocol
+     * Tests connection to alias without specifying the port (derived from protocol)
      */
     @Test
-    public void testConnectImplicitSettings() throws Exception {
-        setupJbossCliConfig(ConnectionProtocols.HTTP_REMOTING, null, null);
-        if (TestSuiteEnvironment.getServerPort() != 9990){
-            fail("port not 9990 for testing");
-        }
-
-        CliProcessWrapper cli = getTestCliProcessWrapper();
+    public void testConnectAliasImplicitSettings() throws Exception {
+        setupAliasConfig(Protocols.HTTPS_REMOTING,  Protocols.HTTP_REMOTING, null);
+        CliProcessWrapper cli = getTestCliProcessWrapper(true);
         try {
             cli.executeNonInteractive();
             String output = cli.getOutput();
@@ -276,12 +295,13 @@ public class CliConfigTestCase {
     }
 
     /**
-     * Tests connection with only port specified, protocol is derived from port
+     *  protocol specified in <default-controller> overrides <default-protocol> when calling --connect without --controller
      */
     @Test
-    public void testProtocolImplicitSettings() throws Exception {
-        setupJbossCliConfig(null, null, null);
-        CliProcessWrapper cli = getTestCliProcessWrapper();
+    public void testProtocolOverriding() throws Exception {
+        //setupAliasConfig(Protocols defaultControllerProtocol, Protocols aliasProtocol, Integer aliasPort) {
+        setupAliasConfig(Protocols.HTTP_REMOTING, TestSuiteEnvironment.getServerPort(), null, null);
+        CliProcessWrapper cli = getTestCliProcessWrapper(false);
         try {
             cli.executeNonInteractive();
             String output = cli.getOutput();
@@ -293,13 +313,15 @@ public class CliConfigTestCase {
         }
     }
 
-    private CliProcessWrapper getTestCliProcessWrapper(){
+    private CliProcessWrapper getTestCliProcessWrapper(boolean connectToAlias){
         CliProcessWrapper cli = new CliProcessWrapper()
                 .addCliArgument("-Djboss.cli.config=" + TMP_JBOSS_CLI_FILE.toPath())
-                .addCliArgument("--controller=" + SERVER_ALIAS)
                 .addCliArgument("--connect")
                 .addCliArgument("--echo-command")
                 .addCliArgument("--command=:read-attribute(name=server-state)");
+        if(connectToAlias){
+            cli.addCliArgument("--controller=" + SERVER_ALIAS);
+        }
         return cli;
     }
 
@@ -317,22 +339,23 @@ public class CliConfigTestCase {
         assertFalse(output.contains("fail"));
     }
 
+    /*
     private static void ensureRemoved(File f) {
         if (f.exists()) {
             if (!f.delete()) {
                 fail("Failed to delete " + f.getAbsolutePath());
             }
         }
-    }
+    }*/
 
-    private enum ConnectionProtocols {
+    private enum Protocols {
         REMOTE("remote"),
         HTTP_REMOTING("http-remoting"),
         HTTPS_REMOTING("https-remoting");
 
         private final String protocolName;
 
-        ConnectionProtocols(String protocolName) {
+        Protocols(String protocolName) {
             this.protocolName = protocolName;
         }
 
