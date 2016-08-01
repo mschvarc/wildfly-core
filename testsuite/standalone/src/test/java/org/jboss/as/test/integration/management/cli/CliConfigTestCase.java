@@ -33,7 +33,8 @@ import javax.xml.stream.XMLOutputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamWriter;
 
-import org.junit.*;
+import org.junit.Before;
+import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.wildfly.core.testrunner.WildflyTestRunner;
 import org.jboss.as.test.shared.TestSuiteEnvironment;
@@ -55,63 +56,6 @@ public class CliConfigTestCase {
     private static final String CONTROLLER_ALIAS_NAME = "Test_Suite_Server_Name";
     private static final int INVALID_PORT = TestSuiteEnvironment.getServerPort() - 1;
     private File TMP_JBOSS_CLI_FILE;
-
-    @Before
-    public void createEmptyJbossConfig() throws IOException {
-        TMP_JBOSS_CLI_FILE = File.createTempFile("tmp-jboss-cli", ".xml");
-    }
-
-    @Test
-    public void testEchoCommand() throws Exception {
-        File f = createConfigFile(true);
-        CliProcessWrapper cli = new CliProcessWrapper()
-                .setCliConfig(f.getAbsolutePath())
-                .addCliArgument("--command=version");
-        final String result = cli.executeNonInteractive();
-        assertNotNull(result);
-        assertTrue(result, result.contains("[disconnected /] version"));
-    }
-
-    @Test
-    public void testNoEchoCommand() throws Exception {
-        File f = createConfigFile(false);
-        CliProcessWrapper cli = new CliProcessWrapper()
-                .setCliConfig(f.getAbsolutePath())
-                .addCliArgument("--command=version");
-        final String result = cli.executeNonInteractive();
-        assertNotNull(result);
-        assertFalse(result, result.contains("[disconnected /] version"));
-    }
-
-    @Test
-    public void testWorkFlowEchoCommand() throws Exception {
-        File f = createConfigFile(true);
-        File script = createScript();
-        CliProcessWrapper cli = new CliProcessWrapper()
-                .setCliConfig(f.getAbsolutePath())
-                .addCliArgument("--file=" + script.getAbsolutePath())
-                .addCliArgument("--controller=" +
-                        TestSuiteEnvironment.getServerAddress() + ":" +
-                        TestSuiteEnvironment.getServerPort())
-                .addCliArgument("--connect");
-        final String result = cli.executeNonInteractive();
-        assertNotNull(result);
-        assertTrue(result, result.contains(":read-attribute(name=foo)"));
-        assertTrue(result, result.contains("/system-property=catch:add(value=bar)"));
-        assertTrue(result, result.contains("/system-property=finally:add(value=bar)"));
-        assertTrue(result, result.contains("/system-property=finally2:add(value=bar)"));
-        assertTrue(result, result.contains("if (outcome == success) of /system-property=catch:read-attribute(name=value)"));
-        assertTrue(result, result.contains("set prop=Catch\\ block\\ was\\ executed"));
-        assertTrue(result, result.contains("/system-property=finally:write-attribute(name=value, value=if)"));
-
-        assertFalse(result, result.contains("/system-property=catch2:add(value=bar)"));
-        assertFalse(result, result.contains("set prop=Catch\\ block\\ wasn\\'t\\ executed"));
-        assertFalse(result, result.contains("/system-property=finally:write-attribute(name=value, value=else)"));
-
-        assertTrue(result, result.contains("/system-property=catch:remove()"));
-        assertTrue(result, result.contains("/system-property=finally:remove()"));
-        assertTrue(result, result.contains("/system-property=finally2:remove()"));
-    }
 
     private static File createScript() {
         File f = new File(TestSuiteEnvironment.getTmpDir(), "test-script" +
@@ -173,6 +117,63 @@ public class CliConfigTestCase {
             fail("Failure creating config file " + ex);
         }
         return f;
+    }
+
+    @Before
+    public void createEmptyJbossConfig() throws IOException {
+        TMP_JBOSS_CLI_FILE = File.createTempFile("tmp-jboss-cli", ".xml");
+    }
+
+    @Test
+    public void testEchoCommand() throws Exception {
+        File f = createConfigFile(true);
+        CliProcessWrapper cli = new CliProcessWrapper()
+                .setCliConfig(f.getAbsolutePath())
+                .addCliArgument("--command=version");
+        final String result = cli.executeNonInteractive();
+        assertNotNull(result);
+        assertTrue(result, result.contains("[disconnected /] version"));
+    }
+
+    @Test
+    public void testNoEchoCommand() throws Exception {
+        File f = createConfigFile(false);
+        CliProcessWrapper cli = new CliProcessWrapper()
+                .setCliConfig(f.getAbsolutePath())
+                .addCliArgument("--command=version");
+        final String result = cli.executeNonInteractive();
+        assertNotNull(result);
+        assertFalse(result, result.contains("[disconnected /] version"));
+    }
+
+    @Test
+    public void testWorkFlowEchoCommand() throws Exception {
+        File f = createConfigFile(true);
+        File script = createScript();
+        CliProcessWrapper cli = new CliProcessWrapper()
+                .setCliConfig(f.getAbsolutePath())
+                .addCliArgument("--file=" + script.getAbsolutePath())
+                .addCliArgument("--controller=" +
+                        TestSuiteEnvironment.getServerAddress() + ":" +
+                        TestSuiteEnvironment.getServerPort())
+                .addCliArgument("--connect");
+        final String result = cli.executeNonInteractive();
+        assertNotNull(result);
+        assertTrue(result, result.contains(":read-attribute(name=foo)"));
+        assertTrue(result, result.contains("/system-property=catch:add(value=bar)"));
+        assertTrue(result, result.contains("/system-property=finally:add(value=bar)"));
+        assertTrue(result, result.contains("/system-property=finally2:add(value=bar)"));
+        assertTrue(result, result.contains("if (outcome == success) of /system-property=catch:read-attribute(name=value)"));
+        assertTrue(result, result.contains("set prop=Catch\\ block\\ was\\ executed"));
+        assertTrue(result, result.contains("/system-property=finally:write-attribute(name=value, value=if)"));
+
+        assertFalse(result, result.contains("/system-property=catch2:add(value=bar)"));
+        assertFalse(result, result.contains("set prop=Catch\\ block\\ wasn\\'t\\ executed"));
+        assertFalse(result, result.contains("/system-property=finally:write-attribute(name=value, value=else)"));
+
+        assertTrue(result, result.contains("/system-property=catch:remove()"));
+        assertTrue(result, result.contains("/system-property=finally:remove()"));
+        assertTrue(result, result.contains("/system-property=finally2:remove()"));
     }
 
     /**
