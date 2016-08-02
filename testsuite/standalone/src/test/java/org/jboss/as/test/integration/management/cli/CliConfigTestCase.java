@@ -166,7 +166,7 @@ public class CliConfigTestCase {
     }
 
     /**
-     * Writes specified config to TMP_JBOSS_CLI_FILE for use as jboss-cli.[sh/bat] settings
+     * Writes specified config to TMP_JBOSS_CLI_FILE for use as jboss-cli.[sh/bat/ps1] settings
      *
      * @param defaultProtocol   default-protocol header
      * @param defaultController settings for default-controller
@@ -464,6 +464,7 @@ public class CliConfigTestCase {
 
     /**
      * Test to ensure https-remoting defaults to port 9993 when none is specified
+     * Default protocol should not be used for known (9990,9993,9999) ports
      */
     @Test
     public void testHttpsRemotingConnection() {
