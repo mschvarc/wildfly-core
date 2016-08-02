@@ -29,6 +29,7 @@ import javax.xml.stream.XMLOutputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamWriter;
 
+import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.wildfly.core.testrunner.WildflyTestRunner;
@@ -452,6 +453,7 @@ public class CliConfigTestCase {
     public void testImplicitAliasSettings() {
         writeJbossCliConfig(null, null, createControllerAlias(null, null));
         CliProcessWrapper cli = getTestCliProcessWrapper(true);
+        fail(TestSuiteEnvironment.getServerAddress());
         try {
             cli.executeNonInteractive();
             String output = cli.getOutput();
