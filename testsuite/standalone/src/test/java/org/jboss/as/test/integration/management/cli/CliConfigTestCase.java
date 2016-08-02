@@ -182,8 +182,12 @@ public class CliConfigTestCase {
                 new OutputStreamWriter(new FileOutputStream(TMP_JBOSS_CLI_FILE), "UTF-8"))) {
             writer.write("<?xml version='1.0' encoding='UTF-8'?>\n");
             writer.write("<jboss-cli xmlns=\"urn:jboss:cli:3.1\">\n");
-            writer.write(defaultProtocol);
-            writer.write(defaultController);
+            if (defaultProtocol != null) {
+                writer.write(defaultProtocol);
+            }
+            if (defaultController != null) {
+                writer.write(defaultController);
+            }
             if (aliasController != null) {
                 writer.write(aliasController);
             }
@@ -330,6 +334,7 @@ public class CliConfigTestCase {
 
     /**
      * Test for use-legacy-override=true, no connection protocol specified and port set to 9999
+     * Missing options should not be loaded from default-controller
      */
     @Test
     public void testUseLegacyOverrideTrue() {
@@ -351,7 +356,8 @@ public class CliConfigTestCase {
     }
 
     /**
-     * Test for use-legacy-override=false, no connection protocol specified and port set to 9999
+     * Test for use-legacy-override=false, ALIAS: no connection protocol specified and port set to 9999
+     * Missing options should not be loaded from default-controller
      */
     @Test
     public void testUseLegacyOverrideFalse() {
@@ -410,6 +416,66 @@ public class CliConfigTestCase {
             cli.executeNonInteractive();
             String output = cli.getOutput();
             assertTrue(output.contains(":" + INVALID_PORT));
+            assertTrue(output.contains(expectedProtocol + "://"));
+            assertDisconnected(output);
+        } catch (Exception ex) {
+            fail(ex.getLocalizedMessage());
+        } finally {
+            cli.destroyProcess();
+        }
+    }
+
+    /**
+     * Tests implicit CLI settings with empty config file
+     * Default config should connect successfully
+     */
+    @Test
+    public void testImplicitSettings() {
+        writeJbossCliConfig(null, null, null); //empty config
+        CliProcessWrapper cli = getTestCliProcessWrapper(false);
+        try {
+            cli.executeNonInteractive();
+            String output = cli.getOutput();
+            assertConnected(output);
+        } catch (Exception ex) {
+            fail(ex.getLocalizedMessage());
+        } finally {
+            cli.destroyProcess();
+        }
+    }
+
+    /**
+     * Tests connection to aliased controller with no settings (name only)
+     */
+    @Test
+    public void testImplicitAliasSettings() {
+        writeJbossCliConfig(null, null, createControllerAlias(null, null));
+        CliProcessWrapper cli = getTestCliProcessWrapper(true);
+        try {
+            cli.executeNonInteractive();
+            String output = cli.getOutput();
+            assertConnected(output);
+        } catch (Exception ex) {
+            fail(ex.getLocalizedMessage());
+        } finally {
+            cli.destroyProcess();
+        }
+    }
+
+    /**
+     * Test to ensure https-remoting defaults to port 9993 when none is specified
+     */
+    @Test
+    public void testHttpsRemotingConnection() {
+        Protocol expectedProtocol = Protocol.HTTPS_REMOTING;
+        writeJbossCliConfig(
+                createDefaultProtocol(true, Protocol.REMOTE), //nonworking default protocol
+                createDefaultController(expectedProtocol, null));
+        CliProcessWrapper cli = getTestCliProcessWrapper(false);
+        try {
+            cli.executeNonInteractive();
+            String output = cli.getOutput();
+            assertTrue(output.contains(":" + 9993));
             assertTrue(output.contains(expectedProtocol + "://"));
             assertDisconnected(output);
         } catch (Exception ex) {
