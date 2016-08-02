@@ -328,7 +328,7 @@ public class CliConfigTestCase {
         String expectedIP = "@" + TestSuiteEnvironment.getServerAddress() + ":" + TestSuiteEnvironment.getServerPort();
         String expectedLocalhost = "@localhost:" + TestSuiteEnvironment.getServerPort();
         assertTrue(output.contains("\"outcome\" => \"success\""));
-        assertTrue(output.contains(expectedIP) || output.contains(expectedLocalhost));
+        assertTrue(expectedIP + " was: " + output, output.contains(expectedIP) || output.contains(expectedLocalhost));
         assertFalse(output.contains("[disconnected /]"));
         assertFalse(output.contains("fail"));
     }
