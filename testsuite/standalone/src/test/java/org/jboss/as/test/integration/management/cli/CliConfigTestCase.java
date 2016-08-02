@@ -53,7 +53,7 @@ import static org.junit.Assert.assertTrue;
 @RunWith(WildflyTestRunner.class)
 public class CliConfigTestCase {
 
-    private static final String CONTROLLER_ALIAS_NAME = "Test_Suite_Server_Name";
+    private static final String CONTROLLER_ALIAS_NAME = "Test_Suite_Server1_Name";
     private static final int INVALID_PORT = TestSuiteEnvironment.getServerPort() - 1;
     private File TMP_JBOSS_CLI_FILE;
 
@@ -179,16 +179,16 @@ public class CliConfigTestCase {
     /**
      * Writes specified config to TMP_JBOSS_CLI_FILE for use as jboss-cli.[sh/bat] settings
      *
-     * @param headers           default-protocol header
+     * @param defaultProtocol           default-protocol header
      * @param defaultController settings for default-controller
      * @param aliasController   settings for aliased controller
      */
-    private void writeJbossCliConfig(String headers, String defaultController, String aliasController) {
+    private void writeJbossCliConfig(String defaultProtocol, String defaultController, String aliasController) {
         try (BufferedWriter writer = new BufferedWriter(
                 new OutputStreamWriter(new FileOutputStream(TMP_JBOSS_CLI_FILE), "UTF-8"))) {
             writer.write("<?xml version='1.0' encoding='UTF-8'?>\n");
-            writer.write("<jboss-cli xmlns=\"urn:jboss:cli:2.0\">\n");
-            writer.write(headers);
+            writer.write("<jboss-cli xmlns=\"urn:jboss:cli:3.1\">\n");
+            writer.write(defaultProtocol);
             writer.write(defaultController);
             if (aliasController != null) {
                 writer.write(aliasController);
@@ -199,8 +199,8 @@ public class CliConfigTestCase {
         }
     }
 
-    private void writeJbossCliConfig(String headers, String defaultController) {
-        writeJbossCliConfig(headers, defaultController, null);
+    private void writeJbossCliConfig(String defaultProtocol, String defaultController) {
+        writeJbossCliConfig(defaultProtocol, defaultController, null);
     }
 
     private String createDefaultProtocol(boolean useLegacyOverride, Protocol defaultProtocol) {
@@ -240,8 +240,6 @@ public class CliConfigTestCase {
         return builder.toString();
     }
 
-
-    //set invalid default controller configuration to ensure all settings are being loaded only from controller aliases
     /**
      * Default controller from jboss-cli.xml should be invalid to ensure settings are loaded from controller alias
      */
@@ -263,7 +261,6 @@ public class CliConfigTestCase {
         }
     }
 
-    //connect to controller alias with all options (protocol, hostname, port) specified
     /**
      * Tests connection to a controller aliased in jboss-cli.xml using --controller,
      * all options (protocol, hostname, port) specified
@@ -286,7 +283,6 @@ public class CliConfigTestCase {
         }
     }
 
-    //protocol specified in <default-controller> overrides <default-protocol> when calling --connect without --controller
     /**
      * protocol specified in <default-controller> overrides <default-protocol> when calling --connect without --controller
      */
@@ -339,8 +335,6 @@ public class CliConfigTestCase {
         assertFalse(output.contains("fail"));
     }
 
-
-    //<default-protocol use-legacy-override=true> && no protocol specified && port=9999 → use remoting://
     /**
      * Test for use-legacy-override=true, no connection protocol specified and port set to 9999
      */
@@ -363,7 +357,6 @@ public class CliConfigTestCase {
         }
     }
 
-    //<default-protocol use-legacy-override=false> && no protocol specified && port=9999 → use protocol from <default-protocol>
     /**
      * Test for use-legacy-override=false, no connection protocol specified and port set to 9999
      */
@@ -387,7 +380,6 @@ public class CliConfigTestCase {
         }
     }
 
-    //no protocol specified in <default-controller> → use <default-protocol>
     /**
      * Tests behavior of default-controller without specified protocol and using non-standard port
      * Protocol should be taken from default-protocol
@@ -434,25 +426,3 @@ public class CliConfigTestCase {
         }
     }
 }
-
-/*
-* *
-     * Tests connection to alias without specifying the port (derived from protocol)
-     * TODO: really needed??
-@Test
-public void testConnectAliasImplicitSettings() throws Exception {
-    writeJbossCliconfig(
-            createHeaders(true, Protocol.REMOTE),
-            createDefaultController(Protocol.HTTPS_REMOTING, INVALID_PORT),
-            createControllerAlias(Protocol.HTTP_REMOTING, null));
-    CliProcessWrapper cli = getTestCliProcessWrapper(true);
-    try {
-        cli.executeNonInteractive();
-        String output = cli.getOutput();
-        assertConnected(output);
-    } catch (Exception ex) {
-        fail(ex.getLocalizedMessage());
-    } finally {
-        cli.destroyProcess();
-    }
-}*/
