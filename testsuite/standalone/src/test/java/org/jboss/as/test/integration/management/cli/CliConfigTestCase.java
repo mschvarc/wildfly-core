@@ -29,7 +29,6 @@ import javax.xml.stream.XMLOutputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamWriter;
 
-import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.wildfly.core.testrunner.WildflyTestRunner;
@@ -328,7 +327,7 @@ public class CliConfigTestCase {
     private void assertConnected(String output) {
         String expectedIP = "@" + TestSuiteEnvironment.getServerAddress() + ":" + TestSuiteEnvironment.getServerPort();
         String expectedLocalhost = "@localhost:" + TestSuiteEnvironment.getServerPort();
-        assertTrue("unexpected outcome: " + output,output.contains("\"outcome\" => \"success\""));
+        assertTrue("unexpected outcome: " + output, output.contains("\"outcome\" => \"success\""));
         assertTrue("unexpected IP: " + output, output.contains(expectedIP) || output.contains(expectedLocalhost));
         assertFalse(output.contains("[disconnected /]"));
         assertFalse(output.contains("fail"));
@@ -453,7 +452,7 @@ public class CliConfigTestCase {
     public void testImplicitAliasSettings() {
         writeJbossCliConfig(null, null, createControllerAlias(null, null));
         CliProcessWrapper cli = getTestCliProcessWrapper(true);
-        fail(TestSuiteEnvironment.getServerAddress());
+        fail(TestSuiteEnvironment.getServerAddress() + ":" + TestSuiteEnvironment.getServerPort());
         try {
             cli.executeNonInteractive();
             String output = cli.getOutput();
