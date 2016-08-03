@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.jboss.as.test.integration.management.cli;
 
 import java.io.BufferedWriter;
@@ -303,7 +304,7 @@ public class CliConfigTestCase {
     /**
      * Returns CliProcessWrapper with settings loaded from TMP_JBOSS_CLI_FILE
      *
-     * @param connectToAlias connects to aliased controller if true, to default controller otherwise
+     * @param connectToAlias connects to aliased controller if true, to {@code: <default-controller>} otherwise
      * @return configured not started  CliProcessWrapper
      */
     private CliProcessWrapper getTestCliProcessWrapper(boolean connectToAlias) {
@@ -332,14 +333,6 @@ public class CliConfigTestCase {
         assertFalse(output.contains("[disconnected /]"));
         assertFalse(output.contains("fail"));
     }
-
-    private void assertConnectionAttempt(String output, int expectedPort) {
-        boolean isConnected = output.contains("@" + TestSuiteEnvironment.getServerAddress() + ":9990");
-        //handles WildflyTestRunner not running on localhost
-        boolean correctFormat = output.contains("http-remoting://localhost:9990");
-        assertTrue(isConnected || correctFormat);
-    }
-
 
     /**
      * Test for use-legacy-override=true, no connection protocol specified and port set to 9999
@@ -435,8 +428,7 @@ public class CliConfigTestCase {
     }
 
     /**
-     * Tests implicit CLI settings with empty config file
-     * Default config should connect successfully
+     * Tests implicit CLI settings with empty config file, should attempt connection to localhost:9990
      */
     @Test
     public void testImplicitSettings() {
@@ -445,10 +437,7 @@ public class CliConfigTestCase {
         try {
             cli.executeNonInteractive();
             String output = cli.getOutput();
-            boolean isConnected = output.contains("@" + TestSuiteEnvironment.getServerAddress() + ":9990");
-            //handles WildflyTestRunner not running on localhost
-            boolean correctFormat = output.contains("http-remoting://localhost:9990");
-            assertTrue(isConnected || correctFormat);
+            assertLocalhostConnectionAttempt(output);
         } catch (Exception ex) {
             fail(ex.getLocalizedMessage());
         } finally {
@@ -456,8 +445,16 @@ public class CliConfigTestCase {
         }
     }
 
+    private void assertLocalhostConnectionAttempt(String output){
+        boolean isConnectedSucesfully = output.contains("\"outcome\" => \"success\"");
+        //handles WildflyTestRunner not running on localhost
+        boolean correctConnectionFailFormat = output.contains("http-remoting://localhost:9990");
+        assertTrue(isConnectedSucesfully || correctConnectionFailFormat);
+    }
+
     /**
      * Tests connection to aliased controller with no settings (name only)
+     * Implicit settings are https-remoting://localhost:9990
      */
     @Test
     public void testImplicitAliasSettings() {
@@ -466,10 +463,7 @@ public class CliConfigTestCase {
         try {
             cli.executeNonInteractive();
             String output = cli.getOutput();
-            boolean isConnected = output.contains("@" + TestSuiteEnvironment.getServerAddress() + ":9990");
-            //handles WildflyTestRunner not running on localhost
-            boolean correctFormat = output.contains("http-remoting://localhost:9990");
-            assertTrue(isConnected || correctFormat);
+            assertLocalhostConnectionAttempt(output);
         } catch (Exception ex) {
             fail(ex.getLocalizedMessage());
         } finally {
@@ -479,13 +473,13 @@ public class CliConfigTestCase {
 
     /**
      * Test to ensure https-remoting defaults to port 9993 when none is specified
-     * Default protocol should not be used for known (9990,9993,9999) ports
+     * Default protocol should not be used for resolution of known (9990,9993,9999) ports
      */
     @Test
     public void testHttpsRemotingConnection() {
         Protocol expectedProtocol = Protocol.HTTPS_REMOTING;
         writeJbossCliConfig(
-                createDefaultProtocol(true, Protocol.REMOTE), //nonworking default protocol
+                createDefaultProtocol(true, Protocol.REMOTE), //non-working default protocol
                 createDefaultController(expectedProtocol, null));
         CliProcessWrapper cli = getTestCliProcessWrapper(false);
         try {
