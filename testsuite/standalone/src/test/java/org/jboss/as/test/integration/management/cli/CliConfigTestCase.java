@@ -334,6 +334,13 @@ public class CliConfigTestCase {
         assertFalse(output.contains("fail"));
     }
 
+    private void assertLocalhostConnectionAttempt(String output){
+        boolean isConnectedSuccessfully = output.contains("\"outcome\" => \"success\"");
+        //handles WildflyTestRunner not running on localhost
+        boolean correctConnectionFailFormat = output.contains("http-remoting://localhost:9990");
+        assertTrue(isConnectedSuccessfully || correctConnectionFailFormat);
+    }
+
     /**
      * Test for use-legacy-override=true, no connection protocol specified and port set to 9999
      * Missing options should not be loaded from default-controller
@@ -428,7 +435,8 @@ public class CliConfigTestCase {
     }
 
     /**
-     * Tests implicit CLI settings with empty config file, should attempt connection to localhost:9990
+     * Tests implicit CLI settings with empty config file,
+     * should attempt connection to http-remoting://localhost:9990
      */
     @Test
     public void testImplicitSettings() {
@@ -445,16 +453,9 @@ public class CliConfigTestCase {
         }
     }
 
-    private void assertLocalhostConnectionAttempt(String output){
-        boolean isConnectedSucesfully = output.contains("\"outcome\" => \"success\"");
-        //handles WildflyTestRunner not running on localhost
-        boolean correctConnectionFailFormat = output.contains("http-remoting://localhost:9990");
-        assertTrue(isConnectedSucesfully || correctConnectionFailFormat);
-    }
-
     /**
      * Tests connection to aliased controller with no settings (name only)
-     * Implicit settings are https-remoting://localhost:9990
+     * Implicit settings are http-remoting://localhost:9990
      */
     @Test
     public void testImplicitAliasSettings() {
@@ -472,8 +473,7 @@ public class CliConfigTestCase {
     }
 
     /**
-     * Test to ensure https-remoting defaults to port 9993 when none is specified
-     * Default protocol should not be used for resolution of known (9990,9993,9999) ports
+     * Test to ensure https-remoting defaults to port 9993 when no port is specified
      */
     @Test
     public void testHttpsRemotingConnection() {
