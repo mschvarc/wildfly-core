@@ -34,8 +34,8 @@ public class CliUTF8TestCase {
             "\u2318\u2613" + "a" + "\u2312\u2610",
             "\u2318\u2613\u2312\u2610",
             "☀E★m☆o☇j☑i☒☓\u2613", //https://en.wikipedia.org/wiki/Miscellaneous_Symbols
-            "Wȟíťě šṕáčé",
-            "АаБбВвГгДдЕеЁёЖжЗзИиЙйКкЛлМмНнОоПпРрСсТтУуФфХхЦцЧчШшЩщЪъЫыЬьЭэЮюЯя",
+            "Wȟíťě šṕáčé", //https://issues.jboss.org/browse/JBEAP-4529
+            "АаБбВвГгДдЕеЁёЖжЗзИиЙйКкЛлМмНнОоПпРрСсТтУуФфХхЦцЧчШшЩщЪъЫыЬьЭэЮюЯя", //cyrilic
     };
 
     @Test
