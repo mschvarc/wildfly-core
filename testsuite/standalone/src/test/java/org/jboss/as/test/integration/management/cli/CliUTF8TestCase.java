@@ -40,7 +40,7 @@ public class CliUTF8TestCase {
 
     @Test
     public void testValuesNonInteractive() throws Exception {
-        int failCounter = 0;
+        int successCounter = 0;
 
         final ByteArrayOutputStream cliOut = new ByteArrayOutputStream();
         final CommandContext ctx = CLITestUtil.getCommandContext(cliOut);
@@ -60,14 +60,14 @@ public class CliUTF8TestCase {
             ctx.handle("/system-property=test1:read-attribute(name=value)");
             String echoResult = cliOut.toString();
 
-            failCounter += (echoResult.contains(expected) && echoResult.contains("success")) ? 0 : 1;
+            successCounter += (echoResult.contains(expected) && echoResult.contains("success")) ? 1 : 0;
         }
-        assertEquals(testValues.length, testValues.length - failCounter);
+        assertEquals(testValues.length, successCounter);
     }
 
     @Test
     public void testValuesInteractive() throws Exception {
-        int failCounter = 0;
+        int successCounter = 0;
         CliProcessWrapper cli = new CliProcessWrapper().addCliArgument("--connect");
         try {
             cli.executeInteractive();
@@ -86,7 +86,7 @@ public class CliUTF8TestCase {
                 cli.clearOutput();
 
                 boolean success = (readResult.contains(expected) && readResult.contains("success"));
-                failCounter += success ? 0 : 1;
+                successCounter += success ? 1 : 0;
                 if (!success && readResult.contains("success")) {
                     System.err.println("\n" + expected + " \n" + readResult);
                 }
@@ -95,6 +95,6 @@ public class CliUTF8TestCase {
         } finally {
             cli.destroyProcess();
         }
-        assertEquals(testValues.length, testValues.length - failCounter);
+        assertEquals(testValues.length, successCounter);
     }
 }
