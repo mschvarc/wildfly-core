@@ -1,3 +1,20 @@
+/*
+ * JBoss, Home of Professional Open Source
+ * Copyright 2016, Red Hat, Inc., and individual contributors as indicated
+ * by the @authors tag.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.jboss.as.test.integration.management.cli;
 
 import org.apache.commons.lang.NotImplementedException;
@@ -17,7 +34,7 @@ import static org.junit.Assert.assertTrue;
 @RunWith(WildflyTestRunner.class)
 public class DiacriticsWhitespaceTestCase {
 
-    private static final String TEST_RESOURCE_NAME = "test_resource_specialchars";
+    private static final String TEST_RESOURCE_NAME = "test_resource_special_chars";
 
     @After
     public void removeTestResource() throws Exception {
@@ -26,8 +43,7 @@ public class DiacriticsWhitespaceTestCase {
         ctx.connectController();
         try {
             ctx.handle("/system-property=" + TEST_RESOURCE_NAME + ":remove");
-        }
-        catch (CommandLineException ex){
+        } catch (CommandLineException ex) {
             assertTrue(ex.getMessage().contains("not found"));
         } finally {
             ctx.terminateSession();
@@ -36,6 +52,8 @@ public class DiacriticsWhitespaceTestCase {
 
     /**
      * Tests whitespace in the middle of words
+     * Regression test for https://issues.jboss.org/browse/JBEAP-4536
+     *
      * @throws Exception
      */
     @Test
@@ -47,7 +65,8 @@ public class DiacriticsWhitespaceTestCase {
 
     /**
      * Tests whitespace at the start/end of strings and if it is trimmed
-     * Double quote does not trim, no curly braces and delimiter trims
+     * Double quotes preserve whitespace, curly braces and no delimiter trims
+     *
      * @throws Exception
      */
     @Test
@@ -58,19 +77,20 @@ public class DiacriticsWhitespaceTestCase {
     }
 
     /**
-     * Tests including single quote in a property name
+     * Tests for single quote in a property name
+     *
      * @throws Exception
      */
     @Test
     public void testSingleQuote() throws Exception {
         testWrapper("It's", "It's", Delimiter.DOUBLE_QUOTE);
-        testWrapper("It\\'s", "It's", Delimiter.CURLY_BRACE); //TODO: not in docs
         testWrapper("It\\'s", "It's", Delimiter.NONE);
         testWrapper("''It's''", "''It's''", Delimiter.DOUBLE_QUOTE);
     }
 
     /**
      * Tests the usage of commas
+     *
      * @throws Exception
      */
     @Test
@@ -81,6 +101,7 @@ public class DiacriticsWhitespaceTestCase {
 
     /**
      * Tests usage of parenthesis with all delimiters
+     *
      * @throws Exception
      */
     @Test
@@ -92,6 +113,7 @@ public class DiacriticsWhitespaceTestCase {
 
     /**
      * Tests usage of braces inside double quotes
+     *
      * @throws Exception
      */
     @Test
@@ -111,6 +133,14 @@ public class DiacriticsWhitespaceTestCase {
         testWrapper("Dos\\ años", "Dos años", Delimiter.NONE);
     }
 
+    /**
+     * Tests CLI in both interactive and non-interactive mode by setting input property value
+     *
+     * @param input
+     * @param expected
+     * @param style
+     * @throws Exception
+     */
     private void testWrapper(String input, String expected, Delimiter style) throws Exception {
         testInteractive(input, expected, style);
         testNonInteractive(input, expected, style);
