@@ -31,6 +31,12 @@ import java.io.ByteArrayOutputStream;
 
 import static org.junit.Assert.assertTrue;
 
+/**
+ * Tests for setting values containing special characters via CLI
+ * Regression testing for https://issues.jboss.org/browse/JBEAP-4536
+ *
+ * @author Martin Schvarcbacher
+ */
 @RunWith(WildflyTestRunner.class)
 public class DiacriticsWhitespaceTestCase {
 
@@ -57,7 +63,7 @@ public class DiacriticsWhitespaceTestCase {
      * @throws Exception
      */
     @Test
-    public void testWhitespaceMiddle() throws Exception {
+    public void testWhitespaceInMiddle() throws Exception {
         testWrapper("Hello World!", "Hello World!", Delimiter.DOUBLE_QUOTE);
         testWrapper("Hello World!", "Hello World!", Delimiter.CURLY_BRACE);
         testWrapper("Hello\\ World!", "Hello World!", Delimiter.NONE);
@@ -82,25 +88,25 @@ public class DiacriticsWhitespaceTestCase {
      * @throws Exception
      */
     @Test
-    public void testSingleQuote() throws Exception {
+    public void testSingleQuotes() throws Exception {
         testWrapper("It's", "It's", Delimiter.DOUBLE_QUOTE);
         testWrapper("It\\'s", "It's", Delimiter.NONE);
         testWrapper("''It's''", "''It's''", Delimiter.DOUBLE_QUOTE);
     }
 
     /**
-     * Tests the usage of commas
+     * Tests the usage of commas inside double quotes
      *
      * @throws Exception
      */
     @Test
-    public void testCommas() throws Exception {
+    public void testCommasInDoubleQuotes() throws Exception {
         testWrapper("Last,First", "Last,First", Delimiter.DOUBLE_QUOTE);
         testWrapper(",,,A,B,C,D,E,F,,,", ",,,A,B,C,D,E,F,,,", Delimiter.DOUBLE_QUOTE);
     }
 
     /**
-     * Tests usage of parenthesis with all delimiters
+     * Tests usage of parenthesis with all delimiter options
      *
      * @throws Exception
      */
@@ -126,7 +132,7 @@ public class DiacriticsWhitespaceTestCase {
     }
 
     @Test
-    @Ignore("JBEAP-5568") //UTF-8 handling bug
+    @Ignore("JBEAP-5568")
     public void testDiacriticMarks() throws Exception {
         testWrapper("Año", "Año", Delimiter.NONE);
         testWrapper("Dos años", "Dos años", Delimiter.CURLY_BRACE);
@@ -136,14 +142,14 @@ public class DiacriticsWhitespaceTestCase {
     /**
      * Tests CLI in both interactive and non-interactive mode by setting input property value
      *
-     * @param input
-     * @param expected
-     * @param style
+     * @param input property value to set via CLI
+     * @param expected property value expected to be set
+     * @param delimiter type of delimiter to use for property name escaping
      * @throws Exception
      */
-    private void testWrapper(String input, String expected, Delimiter style) throws Exception {
-        testInteractive(input, expected, style);
-        testNonInteractive(input, expected, style);
+    private void testWrapper(String input, String expected, Delimiter delimiter) throws Exception {
+        testInteractive(input, expected, delimiter);
+        testNonInteractive(input, expected, delimiter);
     }
 
     private void testInteractive(String input, String expected, Delimiter style) throws Exception {
@@ -197,7 +203,6 @@ public class DiacriticsWhitespaceTestCase {
         assertTrue(echoResult.contains(expected));
         assertTrue(echoResult.contains("\"outcome\" => \"success\""));
     }
-
 
     private enum Delimiter {
         NONE,
