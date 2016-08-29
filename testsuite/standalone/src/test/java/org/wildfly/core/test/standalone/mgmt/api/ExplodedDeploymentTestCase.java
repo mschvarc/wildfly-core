@@ -243,8 +243,14 @@ public class ExplodedDeploymentTestCase {
                     Assert.assertTrue(Operations.isSuccessfulOutcome(response));
                     List<ModelNode> contents = Operations.readResult(response).asList();
                     for(ModelNode content : contents) {
-                        Assert.assertTrue(expectedContents.contains(content.asString()));
-                        expectedContents.remove(content.asString());
+                        Assert.assertTrue(content.hasDefined("path"));
+                        String contentPath = content.get("path").asString();
+                        Assert.assertTrue(content.asString() + " isn't expected", expectedContents.contains(contentPath));
+                        Assert.assertTrue(content.hasDefined("directory"));
+                        if(! content.get("directory").asBoolean()) {
+                            Assert.assertTrue(content.hasDefined("file-size"));
+                        }
+                        expectedContents.remove(contentPath);
                     }
                     Assert.assertTrue(expectedContents.isEmpty());
                 } catch (InterruptedException e) {
@@ -397,8 +403,14 @@ public class ExplodedDeploymentTestCase {
                     Assert.assertTrue(Operations.isSuccessfulOutcome(response));
                     List<ModelNode> contents = Operations.readResult(response).asList();
                     for(ModelNode content : contents) {
-                        Assert.assertTrue(expectedContents.contains(content.asString()));
-                        expectedContents.remove(content.asString());
+                        Assert.assertTrue(content.hasDefined("path"));
+                        String contentPath = content.get("path").asString();
+                        Assert.assertTrue(content.asString() + " isn't expected", expectedContents.contains(contentPath));
+                        Assert.assertTrue(content.hasDefined("directory"));
+                        if(! content.get("directory").asBoolean()) {
+                            Assert.assertTrue(content.hasDefined("file-size"));
+                        }
+                        expectedContents.remove(contentPath);
                     }
                     Assert.assertTrue(expectedContents.isEmpty());
                 } catch (InterruptedException e) {
