@@ -128,9 +128,6 @@ public class CliSpecialCharactersTestCase {
     public void testBraces() throws Exception {
         testWrapper("{braces}", "{braces}", Delimiter.DOUBLE_QUOTE);
         testWrapper("{{}}braces{{{{}}}}", "{{}}braces{{{{}}}}", Delimiter.DOUBLE_QUOTE);
-        testWrapper("{{{{braces{{{{", "{{{{braces{{{{", Delimiter.DOUBLE_QUOTE);
-        testWrapper("}}}}braces}}}}", "}}}}braces}}}}", Delimiter.DOUBLE_QUOTE);
-        testWrapper("}{}{}{braces}{}{}{", "}{}{}{braces}{}{}{", Delimiter.DOUBLE_QUOTE);
     }
 
     /**
