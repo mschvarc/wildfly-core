@@ -15,13 +15,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.jboss.as.test.integration.management.cli;
 
-import org.apache.commons.lang.NotImplementedException;
 import org.jboss.as.cli.CommandContext;
 import org.jboss.as.cli.CommandLineException;
 import org.jboss.as.test.integration.management.util.CLITestUtil;
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -38,10 +39,11 @@ import static org.junit.Assert.assertTrue;
  * @author Martin Schvarcbacher
  */
 @RunWith(WildflyTestRunner.class)
-public class DiacriticsWhitespaceTestCase {
+public class CliSpecialCharactersTestCase {
 
     private static final String TEST_RESOURCE_NAME = "test_resource_special_chars";
 
+    @Before
     @After
     public void removeTestResource() throws Exception {
         final ByteArrayOutputStream cliOut = new ByteArrayOutputStream();
@@ -131,6 +133,11 @@ public class DiacriticsWhitespaceTestCase {
         testWrapper("}{}{}{braces}{}{}{", "}{}{}{braces}{}{}{", Delimiter.DOUBLE_QUOTE);
     }
 
+    /**
+     * Tests diacritic marks without delimiters and inside curly braces.
+     * Regression test against https://issues.jboss.org/browse/JBEAP-5568
+     * @throws Exception
+     */
     @Test
     @Ignore("JBEAP-5568")
     public void testDiacriticMarks() throws Exception {
@@ -140,7 +147,7 @@ public class DiacriticsWhitespaceTestCase {
     }
 
     /**
-     * Tests CLI in both interactive and non-interactive mode by setting input property value
+     * Tests setting and reading resource value in both interactive and non-interactive
      *
      * @param input property value to set via CLI
      * @param expected property value expected to be set
@@ -152,7 +159,15 @@ public class DiacriticsWhitespaceTestCase {
         testNonInteractive(input, expected, delimiter);
     }
 
-    private void testInteractive(String input, String expected, Delimiter style) throws Exception {
+    /**
+     * Tests setting resource value and verifies it was saved successfully in interactive (user) mode
+     *
+     * @param input property value to set via CLI
+     * @param expected property value expected to be set
+     * @param delimiter type of delimiter to use for property name escaping
+     * @throws Exception
+     */
+    private void testInteractive(String input, String expected, Delimiter delimiter) throws Exception {
         CliProcessWrapper cli = new CliProcessWrapper().addCliArgument("--connect");
         try {
             cli.executeInteractive();
@@ -161,7 +176,7 @@ public class DiacriticsWhitespaceTestCase {
             cli.clearOutput();
 
             cli.pushLineAndWaitForResults("/system-property=" + TEST_RESOURCE_NAME +
-                    ":add(value=" + style.getStartDelimiter() + input + style.getEndDelimiter() + ")");
+                    ":add(value=" + delimiter.getStartDelimiter() + input + delimiter.getEndDelimiter() + ")");
             String writeResult = cli.getOutput();
             assertTrue(writeResult.contains("\"outcome\" => \"success\""));
             cli.clearOutput();
@@ -172,67 +187,72 @@ public class DiacriticsWhitespaceTestCase {
 
             assertTrue(readResult.contains("\"outcome\" => \"success\""));
             assertTrue(readResult.contains(expected));
+            cli.clearOutput();
 
-            cli.ctrlCAndWaitForClose();
+            cli.pushLineAndWaitForResults("/system-property=" + TEST_RESOURCE_NAME + ":remove");
+            assertTrue(cli.getOutput().contains("\"outcome\" => \"success\""));
+            cli.pushLineAndWaitForResults("quit");
         } finally {
             cli.destroyProcess();
         }
     }
 
-    private void testNonInteractive(String input, String expected, Delimiter style) throws Exception {
+    /**
+     * Tests setting resource value and verifies it was saved successfully in non-interactive mode
+     *
+     * @param input property value to set via CLI
+     * @param expected property value expected to be set
+     * @param delimiter type of delimiter to use for property name escaping
+     * @throws Exception
+     */
+    private void testNonInteractive(String input, String expected, Delimiter delimiter) throws Exception {
         final ByteArrayOutputStream cliOut = new ByteArrayOutputStream();
         final CommandContext ctx = CLITestUtil.getCommandContext(cliOut);
         ctx.connectController();
-
         cliOut.reset();
         try {
             ctx.handle("/system-property=" + TEST_RESOURCE_NAME + ":remove");
         } catch (CommandLineException e) {
             assertTrue(e.getMessage().contains("not found"));
         }
-
         cliOut.reset();
+        //add resource
         ctx.handle("/system-property=" + TEST_RESOURCE_NAME +
-                ":add(value=" + style.getStartDelimiter() + input + style.getEndDelimiter() + ")");
+                ":add(value=" + delimiter.getStartDelimiter() + input + delimiter.getEndDelimiter() + ")");
         String setOutcome = cliOut.toString();
         assertTrue(setOutcome.contains("\"outcome\" => \"success\""));
         cliOut.reset();
+        //read resource
         ctx.handle("/system-property=" + TEST_RESOURCE_NAME + ":read-attribute(name=value)");
-        String echoResult = cliOut.toString();
-
-        assertTrue(echoResult.contains(expected));
-        assertTrue(echoResult.contains("\"outcome\" => \"success\""));
+        String readResult = cliOut.toString();
+        assertTrue(readResult.contains(expected));
+        assertTrue(readResult.contains("\"outcome\" => \"success\""));
+        cliOut.reset();
+        //delete resource
+        ctx.handle("/system-property=" + TEST_RESOURCE_NAME + ":remove");
+        String removeResult = cliOut.toString();
+        assertTrue(removeResult.contains("\"outcome\" => \"success\""));
     }
 
     private enum Delimiter {
-        NONE,
-        DOUBLE_QUOTE,
-        CURLY_BRACE;
+        NONE("",""),
+        DOUBLE_QUOTE ("\"", "\""),
+        CURLY_BRACE("{","}");
+
+        private final String startDelimiter;
+        private final String endDelimiter;
+
+        Delimiter(String startDelimiter, String endDelimiter) {
+            this.startDelimiter = startDelimiter;
+            this.endDelimiter = endDelimiter;
+        }
 
         public String getStartDelimiter() {
-            switch (this) {
-                case NONE:
-                    return "";
-                case DOUBLE_QUOTE:
-                    return "\"";
-                case CURLY_BRACE:
-                    return "{";
-                default:
-                    throw new NotImplementedException();
-            }
+            return startDelimiter;
         }
 
         public String getEndDelimiter() {
-            switch (this) {
-                case NONE:
-                    return "";
-                case DOUBLE_QUOTE:
-                    return "\"";
-                case CURLY_BRACE:
-                    return "}";
-                default:
-                    throw new NotImplementedException();
-            }
+            return endDelimiter;
         }
     }
 }
