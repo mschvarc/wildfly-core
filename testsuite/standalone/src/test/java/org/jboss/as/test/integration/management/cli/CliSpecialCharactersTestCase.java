@@ -49,6 +49,7 @@ public class CliSpecialCharactersTestCase {
         try {
             ctx.connectController();
             ctx.handleSafe("/system-property=" + TEST_RESOURCE_NAME + ":remove");
+            ctx.disconnectController();
         } finally {
             ctx.terminateSession();
         }
@@ -156,14 +157,12 @@ public class CliSpecialCharactersTestCase {
      * @param delimiter type of delimiter to use for property name escaping
      * @throws IOException
      */
-    private void testInteractive(String input, String expected, Delimiters delimiter) throws IOException {
+    private void testInteractive(String input, String expected, Delimiters delimiter) throws Exception {
+        removeTestResources();
         final CliProcessWrapper cli = new CliProcessWrapper().addCliArgument("--connect");
         cli.executeInteractive();
         try {
             cli.clearOutput();
-            cli.pushLineAndWaitForResults("/system-property=" + TEST_RESOURCE_NAME + ":remove");
-            cli.clearOutput();
-
             cli.pushLineAndWaitForResults("/system-property=" + TEST_RESOURCE_NAME +
                     ":add(value=" + delimiter.getStartDelimiter() + input + delimiter.getEndDelimiter() + ")");
             String writeResult = cli.getOutput();
@@ -172,7 +171,6 @@ public class CliSpecialCharactersTestCase {
 
             cli.pushLineAndWaitForResults("/system-property=" + TEST_RESOURCE_NAME + ":read-attribute(name=value)");
             String readResult = cli.getOutput();
-            cli.clearOutput();
 
             assertTrue(readResult.contains("\"outcome\" => \"success\""));
             assertTrue(readResult.contains(expected));
@@ -180,7 +178,8 @@ public class CliSpecialCharactersTestCase {
 
             cli.pushLineAndWaitForResults("/system-property=" + TEST_RESOURCE_NAME + ":remove");
             assertTrue(cli.getOutput().contains("\"outcome\" => \"success\""));
-            cli.ctrlCAndWaitForClose();
+            boolean closed = cli.ctrlCAndWaitForClose();
+            assertTrue("Process did not terminate correctly. Output: '" + cli.getOutput()+ "'", closed);
         } finally {
             cli.destroyProcess();
         }
