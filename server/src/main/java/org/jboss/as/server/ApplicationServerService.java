@@ -155,7 +155,8 @@ final class ApplicationServerService implements Service<AsyncFuture<ServiceConta
         ModuleIndexService.addService(serviceTarget);
         final AbstractVaultReader vaultReader = loadVaultReaderService();
         ServerLogger.AS_ROOT_LOGGER.debugf("Using VaultReader %s", vaultReader);
-        ServerService.addService(serviceTarget, configuration, processState, bootstrapListener, runningModeControl, vaultReader, configuration.getAuditLogger(), configuration.getAuthorizer());
+        ServerService.addService(serviceTarget, configuration, processState, bootstrapListener, runningModeControl, vaultReader, configuration.getAuditLogger(),
+                configuration.getAuthorizer(), configuration.getSecurityIdentitySupplier());
         final ServiceActivatorContext serviceActivatorContext = new ServiceActivatorContext() {
             @Override
             public ServiceTarget getServiceTarget() {
@@ -227,14 +228,12 @@ final class ApplicationServerService implements Service<AsyncFuture<ServiceConta
         final Iterator<AbstractVaultReader> it = serviceLoader.iterator();
         // TODO WFCORE-114 get rid of catching/suppressing errors once we have a complete impl in WFCORE
         ServiceConfigurationError sce = null;
-        while (it.hasNext()) {
-            try {
+        try {
+            while (it.hasNext()) {
                 return it.next();
-            } catch (ServiceConfigurationError e) {
-                if (sce == null) {
-                    sce = e;
-                }
             }
+        } catch (ServiceConfigurationError e) {
+            sce = e;
         }
         if (sce != null) {
             ServerLogger.AS_ROOT_LOGGER.debugf(sce, "Cannot instantiate provider of service %s", AbstractVaultReader.class);

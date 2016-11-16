@@ -29,7 +29,7 @@
     <parent>
         <groupId>org.wildfly.core</groupId>
         <artifactId>wildfly-domain-http</artifactId>
-        <version>3.0.0.Alpha12-SNAPSHOT</version>
+        <version>3.0.0.Alpha13-SNAPSHOT</version>
     </parent>
 
     <artifactId>wildfly-domain-http-interface</artifactId>
@@ -58,8 +58,16 @@
             <artifactId>wildfly-domain-management</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.wildfly.common</groupId>
+            <artifactId>wildfly-common</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.wildfly.security</groupId>
             <artifactId>wildfly-elytron</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.wildfly.security.elytron-web</groupId>
+            <artifactId>undertow-server</artifactId>
         </dependency>
         <dependency>
             <groupId>org.jboss.logging</groupId>
@@ -81,10 +89,6 @@
                   projects that depend on this project.-->
             <scope>provided</scope>
             <optional>true</optional>
-        </dependency>
-        <dependency>
-            <groupId>org.jboss.sasl</groupId>
-            <artifactId>jboss-sasl</artifactId>
         </dependency>
 
         <dependency>

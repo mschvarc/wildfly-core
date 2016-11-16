@@ -69,6 +69,7 @@ import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.client.OperationBuilder;
 import org.jboss.as.controller.client.OperationMessageHandler;
 import org.jboss.as.controller.client.OperationResponse;
+import org.jboss.as.controller.descriptions.ModelDescriptionConstants;
 import org.jboss.as.core.security.AccessMechanism;
 import org.jboss.as.domain.http.server.logging.HttpServerLogger;
 import org.jboss.as.protocol.StreamUtils;
@@ -100,7 +101,8 @@ class DomainApiHandler implements HttpHandler {
         RESOURCE_DESCRIPTION(READ_RESOURCE_DESCRIPTION_OPERATION, Common.ONE_WEEK),
         SNAPSHOTS("list-snapshots", 0),
         OPERATION_DESCRIPTION(READ_OPERATION_DESCRIPTION_OPERATION, Common.ONE_WEEK),
-        OPERATION_NAMES(READ_OPERATION_NAMES_OPERATION, 0);
+        OPERATION_NAMES(READ_OPERATION_NAMES_OPERATION, 0),
+        READ_CONTENT(ModelDescriptionConstants.READ_CONTENT, 0);
 
         private String realOperation;
         private int maxAge;
@@ -218,9 +220,9 @@ class DomainApiHandler implements HttpHandler {
             }
             response = modelController.execute(new OperationBuilder(dmr).build(), OperationMessageHandler.logging, control);
             if (cachable && streamIndex > -1) {
-                // Use the MD5 of the model nodes toString() method as ETag
+                // Use the MD5 of the model nodes asString() method as ETag
                 MessageDigest md = MessageDigest.getInstance("MD5");
-                md.update(response.toString().getBytes());
+                md.update(response.getResponseNode().asString().getBytes());
                 ETag etag = new ETag(false, HexConverter.convertToHexString(md.digest()));
                 operationParameterBuilder.etag(etag);
                 if (!ETagUtils.handleIfNoneMatch(exchange, etag, false)) {

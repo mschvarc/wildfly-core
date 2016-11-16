@@ -61,9 +61,12 @@ import org.jboss.as.controller.RunningModeControl;
 import org.jboss.as.controller.SimpleAttributeDefinitionBuilder;
 import org.jboss.as.controller.SimpleOperationDefinitionBuilder;
 import org.jboss.as.controller.access.management.DelegatingConfigurableAuthorizer;
+import org.jboss.as.controller.access.management.ManagementSecurityIdentitySupplier;
 import org.jboss.as.controller.audit.ManagedAuditLogger;
 import org.jboss.as.controller.client.OperationAttachments;
 import org.jboss.as.controller.client.OperationMessageHandler;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.PRODUCT_NAME;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.PRODUCT_VERSION;
 import org.jboss.as.controller.descriptions.NonResolvingResourceDescriptionResolver;
 import org.jboss.as.controller.extension.ExtensionRegistry;
 import org.jboss.as.controller.extension.MutableRootResourceRegistrationProvider;
@@ -116,7 +119,7 @@ public class SyncModelServerStateTestCase extends AbstractControllerTestBase  {
             .addParameter(ATTR)
             .build();
 
-    private final ExtensionRegistry extensionRegistry = new ExtensionRegistry(ProcessType.HOST_CONTROLLER, new RunningModeControl(RunningMode.NORMAL), null, null, RuntimeHostControllerInfoAccessor.SERVER);
+    private final ExtensionRegistry extensionRegistry = new ExtensionRegistry(ProcessType.HOST_CONTROLLER, new RunningModeControl(RunningMode.NORMAL), null, null, null, RuntimeHostControllerInfoAccessor.SERVER);
     private volatile IgnoredDomainResourceRegistry ignoredDomainResourceRegistry;
     private volatile TestInitializer initializer;
     private volatile Resource rootResource;
@@ -156,6 +159,20 @@ public class SyncModelServerStateTestCase extends AbstractControllerTestBase  {
         for (MockServerProxy proxy : serverProxies.values()) {
             Assert.assertEquals("running", proxy.state);
         }
+    }
+
+    @Test
+    public void testLegacyModelSync() throws Exception {
+        Resource masterRootResource = rootResource.clone();
+        masterRootResource.getModel().get(PRODUCT_NAME).set("WildFly Core Test");
+        masterRootResource.getModel().get(PRODUCT_VERSION).set("test 2.0");
+        Assert.assertFalse(rootResource.getModel().hasDefined(PRODUCT_NAME));
+        Assert.assertFalse(rootResource.getModel().hasDefined(PRODUCT_VERSION));
+        executeTriggerSyncOperation(masterRootResource);
+        Assert.assertTrue(rootResource.getModel().hasDefined(PRODUCT_NAME));
+        Assert.assertEquals("WildFly Core Test", rootResource.getModel().get(PRODUCT_NAME).asString());
+        Assert.assertTrue(rootResource.getModel().hasDefined(PRODUCT_VERSION));
+        Assert.assertEquals("test 2.0",rootResource.getModel().get(PRODUCT_VERSION).asString());
     }
 
     @Test
@@ -652,6 +669,7 @@ public class SyncModelServerStateTestCase extends AbstractControllerTestBase  {
             final IgnoredDomainResourceRegistry ignoredDomainResourceRegistry = new IgnoredDomainResourceRegistry(hostControllerInfo);
             final PathManagerService pathManager = new HostPathManagerService();
             final DelegatingConfigurableAuthorizer authorizer = new DelegatingConfigurableAuthorizer();
+            final ManagementSecurityIdentitySupplier securityIdentitySupplier = new ManagementSecurityIdentitySupplier();
             final HostRegistrations hostRegistrations = null;
             final DomainHostExcludeRegistry domainHostExcludeRegistry = new DomainHostExcludeRegistry();
             final MutableRootResourceRegistrationProvider rootResourceRegistrationProvider = new MutableRootResourceRegistrationProvider() {
@@ -662,7 +680,7 @@ public class SyncModelServerStateTestCase extends AbstractControllerTestBase  {
             };
             DomainRootDefinition domain = new DomainRootDefinition(domainController, hostControllerEnvironment, configurationPersister,
                     repository, repository, isMaster, hostControllerInfo, extensionRegistry, ignoredDomainResourceRegistry,
-                    pathManager, authorizer, hostRegistrations, domainHostExcludeRegistry, rootResourceRegistrationProvider);
+                    pathManager, authorizer, securityIdentitySupplier, hostRegistrations, domainHostExcludeRegistry, rootResourceRegistrationProvider);
             getDelegatingResourceDefiniton().setDelegate(domain);
 
             final String hostName = hostControllerEnvironment.getHostName();
@@ -680,7 +698,7 @@ public class SyncModelServerStateTestCase extends AbstractControllerTestBase  {
             hostResourceDefinition = new HostResourceDefinition(hostName, hostControllerConfigurationPersister,
                     hostControllerEnvironment, runningModeControl, repository, hostControllerInfo, serverInventory, remoteFileRepository,
                     repository, domainController, extensionRegistry, vaultReader, ignoredDomainResourceRegistry, processState,
-                    pathManager, authorizer, auditLogger, bootErrorCollector);
+                    pathManager, authorizer, securityIdentitySupplier, auditLogger, bootErrorCollector);
         }
 
         protected Resource initModel(final ManagementModel managementModel) {

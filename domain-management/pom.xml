@@ -29,7 +29,7 @@
     <parent>
         <groupId>org.wildfly.core</groupId>
         <artifactId>wildfly-core-parent</artifactId>
-        <version>3.0.0.Alpha12-SNAPSHOT</version>
+        <version>3.0.0.Alpha13-SNAPSHOT</version>
     </parent>
 
     <artifactId>wildfly-domain-management</artifactId>
@@ -149,7 +149,7 @@
 
         <dependency>
             <groupId>org.wildfly.openssl</groupId>
-            <artifactId>wildfly-openssl</artifactId>
+            <artifactId>wildfly-openssl-java</artifactId>
         </dependency>
 
         <dependency>

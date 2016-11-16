@@ -1126,7 +1126,7 @@ public interface ControllerLogger extends BasicLogger {
      *
      * @return the exception.
      */
-    @Message(id = 97, value = "Wrong type for %s. Expected %s but was %s")
+    @Message(id = 97, value = "Wrong type for '%s'. Expected %s but was %s")
     OperationFailedException incorrectType(String name, Collection<ModelType> validTypes, ModelType invalidType);
 
     /**
@@ -1790,7 +1790,7 @@ public interface ControllerLogger extends BasicLogger {
      *
      * @return the exception.
      */
-    @Message(id = 155, value = "%s may not be null")
+    @Message(id = 155, value = "'%s' may not be null")
     OperationFailedException nullNotAllowed(String name);
 
     // id = 156; redundant parameter null check message
@@ -3048,11 +3048,11 @@ public interface ControllerLogger extends BasicLogger {
     @Message(id = 314, value = "Users with multiple roles are not allowed")
     SecurityException illegalMultipleRoles();
 
-    @Message(id = 315, value = "An unexpected number of AccountPrincipals %d have been found in the current Subject.")
-    IllegalStateException unexpectedAccountPrincipalCount(int count);
+    //@Message(id = 315, value = "An unexpected number of AccountPrincipals %d have been found in the current Subject.")
+    //IllegalStateException unexpectedAccountPrincipalCount(int count);
 
-    @Message(id = 316, value = "Different realms '%s' '%s' found in single Subject")
-    IllegalStateException differentRealmsInSubject(String realmOne, String realmTwo);
+    //@Message(id = 316, value = "Different realms '%s' '%s' found in single Subject")
+    //IllegalStateException differentRealmsInSubject(String realmOne, String realmTwo);
 
     @Message(id = 317, value = "There is no handler called '%s'")
     IllegalStateException noHandlerCalled(String name);
@@ -3478,4 +3478,7 @@ public interface ControllerLogger extends BasicLogger {
 
     @Message(id = 432, value = "Parameter name expected, but is missing '%s'")
     IllegalArgumentException credentialStoreURIParameterNameExpected(String uri);
+
+    @Message(id = 433, value = "'%s' is not a valid representation of a resource address")
+    OperationFailedException invalidAddressFormat(ModelNode address);
 }
