@@ -174,24 +174,28 @@ public class CliSpecialCharactersTestCase {
         removeTestResources();
         final CliProcessWrapper cli = new CliProcessWrapper().addCliArgument("-c");
         cli.executeInteractive();
-        //cli.executeInteractive("connect");
         try {
             cli.clearOutput();
             cli.pushLineAndWaitForResults("/system-property=" + TEST_RESOURCE_NAME +
                     ":add(value=" + delimiter.getStartDelimiter() + input + delimiter.getEndDelimiter() + ")");
             String writeResult = cli.getOutput();
             assertTrue(writeResult.contains("\"outcome\" => \"success\""));
+            System.err.println(cli.getOutput());
             cli.clearOutput();
 
             cli.pushLineAndWaitForResults("/system-property=" + TEST_RESOURCE_NAME + ":read-attribute(name=value)");
+            System.err.println(cli.getOutput());
             String readResult = cli.getOutput();
 
             assertTrue(readResult.contains("\"outcome\" => \"success\""));
+            System.err.println(cli.getOutput());
             assertTrue(readResult.contains(expected));
             cli.clearOutput();
 
             cli.pushLineAndWaitForResults("/system-property=" + TEST_RESOURCE_NAME + ":remove");
+            System.err.println(cli.getOutput());
             assertTrue(cli.getOutput().contains("\"outcome\" => \"success\""));
+            //cli.pushLineAndWaitForResults("quit");
             cli.pushLineAndWaitForClose("quit");
             //boolean closed = cli.ctrlCAndWaitForClose();
             //assertTrue("Process did not terminate correctly. Output: '" + cli.getOutput() + "'", closed);
