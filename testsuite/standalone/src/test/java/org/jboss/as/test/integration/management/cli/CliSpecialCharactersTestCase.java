@@ -57,7 +57,7 @@ public class CliSpecialCharactersTestCase {
 
     @Test
     public void loopTheLoop() throws Exception {
-        for(int i=0; i<10; i++){
+        for (int i = 0; i < 10; i++) {
             testBraces();
             testCommasInDoubleQuotes();
             testParenthesis();
