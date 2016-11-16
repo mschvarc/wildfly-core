@@ -157,10 +157,11 @@ public class CliSpecialCharactersTestCase {
      * @param delimiter type of delimiter to use for property name escaping
      * @throws IOException
      */
-    private void testInteractive(String input, String expected, Delimiters delimiter) throws Exception {
+    private synchronized void testInteractive(String input, String expected, Delimiters delimiter) throws Exception {
         removeTestResources();
-        final CliProcessWrapper cli = new CliProcessWrapper().addCliArgument("--connect");
+        final CliProcessWrapper cli = new CliProcessWrapper().addCliArgument("-c");
         cli.executeInteractive();
+        //cli.executeInteractive("connect");
         try {
             cli.clearOutput();
             cli.pushLineAndWaitForResults("/system-property=" + TEST_RESOURCE_NAME +
@@ -178,8 +179,9 @@ public class CliSpecialCharactersTestCase {
 
             cli.pushLineAndWaitForResults("/system-property=" + TEST_RESOURCE_NAME + ":remove");
             assertTrue(cli.getOutput().contains("\"outcome\" => \"success\""));
-            boolean closed = cli.ctrlCAndWaitForClose();
-            assertTrue("Process did not terminate correctly. Output: '" + cli.getOutput() + "'", closed);
+            cli.pushLineAndWaitForClose("quit");
+            //boolean closed = cli.ctrlCAndWaitForClose();
+            //assertTrue("Process did not terminate correctly. Output: '" + cli.getOutput() + "'", closed);
         } finally {
             cli.destroyProcess();
         }
