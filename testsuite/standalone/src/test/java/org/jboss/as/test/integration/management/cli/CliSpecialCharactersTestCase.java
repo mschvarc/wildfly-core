@@ -55,6 +55,19 @@ public class CliSpecialCharactersTestCase {
         }
     }
 
+    @Test
+    public void loopTheLoop() throws Exception {
+        for(int i=0; i<10; i++){
+            testBraces();
+            testCommasInDoubleQuotes();
+            testParenthesis();
+            testSingleQuotes();
+            testWhitespaceInMiddle();
+            testWhitespaceTrimming();
+        }
+    }
+
+
     @Before
     public void setup() throws Exception {
         removeTestResources();
