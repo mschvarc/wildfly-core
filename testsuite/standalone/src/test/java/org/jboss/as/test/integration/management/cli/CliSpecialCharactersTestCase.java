@@ -43,7 +43,7 @@ import static org.junit.Assert.assertTrue;
 @RunWith(WildflyTestRunner.class)
 public class CliSpecialCharactersTestCase {
     private static final String TEST_RESOURCE_NAME = "test_resource_special_chars";
-    private static CliProcessWrapper cli;
+    private static CliProcessWrapper cli = new CliProcessWrapper();
     private final ByteArrayOutputStream cliOut = new ByteArrayOutputStream();
     private CommandContext ctx;
 
@@ -53,14 +53,15 @@ public class CliSpecialCharactersTestCase {
 
     @BeforeClass
     public static void prepare(){
-        cli = new CliProcessWrapper().addCliArgument("-c");
+        //cli = new CliProcessWrapper();
+                //.addCliArgument("-c");
         cli.executeInteractive();
     }
 
     @AfterClass
     public static void destroy() throws IOException {
-        cli.pushLineAndWaitForResults("disconnect");
-        cli.pushLineAndWaitForClose("quit");
+        //cli.pushLineAndWaitForResults("disconnect");
+        //cli.pushLineAndWaitForClose("quit");
         cli.destroyProcess();
     }
 
@@ -170,7 +171,10 @@ public class CliSpecialCharactersTestCase {
      * @param delimiter type of delimiter to use for property name escaping
      * @throws IOException
      */
-    private void testInteractive(String input, String expected, Delimiters delimiter) throws IOException {
+    private synchronized void testInteractive(String input, String expected, Delimiters delimiter) throws IOException {
+        //cli.destroyProcess();
+        //cli.executeInteractive();
+        cli.pushLineAndWaitForResults("connect");
         removeTestResources();
         cli.clearOutput();
         cli.pushLineAndWaitForResults("/system-property=" + TEST_RESOURCE_NAME +
@@ -188,6 +192,7 @@ public class CliSpecialCharactersTestCase {
 
         cli.pushLineAndWaitForResults("/system-property=" + TEST_RESOURCE_NAME + ":remove");
         assertTrue("failed to remove resource", cli.getOutput().contains("success"));
+        //cli.destroyProcess();
     }
 
     /**
