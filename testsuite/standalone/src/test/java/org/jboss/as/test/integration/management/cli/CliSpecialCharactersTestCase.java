@@ -19,7 +19,6 @@
 package org.jboss.as.test.integration.management.cli;
 
 import org.jboss.as.cli.CommandContext;
-import org.jboss.as.cli.CommandLineException;
 import org.jboss.as.test.integration.management.util.CLITestUtil;
 import org.junit.After;
 import org.junit.Before;
@@ -28,7 +27,6 @@ import org.junit.runner.RunWith;
 import org.wildfly.core.testrunner.WildflyTestRunner;
 
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 
 import static org.junit.Assert.assertTrue;
 
@@ -40,8 +38,8 @@ import static org.junit.Assert.assertTrue;
  */
 @RunWith(WildflyTestRunner.class)
 public class CliSpecialCharactersTestCase {
-
     private static final String TEST_RESOURCE_NAME = "test_resource_special_chars";
+    private CliProcessWrapper cli;
 
     private void removeTestResources() throws Exception {
         final ByteArrayOutputStream cliOut = new ByteArrayOutputStream();
@@ -56,7 +54,7 @@ public class CliSpecialCharactersTestCase {
     }
 
     @Test
-    public void loopTheLoop() throws Exception {
+    public void testLoop() throws Exception {
         for (int i = 0; i < 10; i++) {
             testBraces();
             testCommasInDoubleQuotes();
@@ -71,11 +69,15 @@ public class CliSpecialCharactersTestCase {
     @Before
     public void setup() throws Exception {
         removeTestResources();
+        cli = new CliProcessWrapper().addCliArgument("-c");
+        cli.executeInteractive();
     }
 
     @After
     public void cleanup() throws Exception {
         removeTestResources();
+        cli.ctrlCAndWaitForClose();
+        cli.destroyProcess();
     }
 
     /**
@@ -168,40 +170,26 @@ public class CliSpecialCharactersTestCase {
      * @param input     property value to set via CLI
      * @param expected  property value expected to be set
      * @param delimiter type of delimiter to use for property name escaping
-     * @throws IOException
+     * @throws Exception
      */
-    private synchronized void testInteractive(String input, String expected, Delimiters delimiter) throws Exception {
+    private void testInteractive(String input, String expected, Delimiters delimiter) throws Exception {
         removeTestResources();
-        final CliProcessWrapper cli = new CliProcessWrapper().addCliArgument("-c");
-        cli.executeInteractive();
-        try {
-            cli.clearOutput();
-            cli.pushLineAndWaitForResults("/system-property=" + TEST_RESOURCE_NAME +
-                    ":add(value=" + delimiter.getStartDelimiter() + input + delimiter.getEndDelimiter() + ")");
-            String writeResult = cli.getOutput();
-            assertTrue(writeResult.contains("\"outcome\" => \"success\""));
-            System.err.println(cli.getOutput());
-            cli.clearOutput();
+        cli.clearOutput();
+        cli.pushLineAndWaitForResults("/system-property=" + TEST_RESOURCE_NAME +
+                ":add(value=" + delimiter.getStartDelimiter() + input + delimiter.getEndDelimiter() + ")");
+        String writeResult = cli.getOutput();
+        assertTrue("failed to add resource", writeResult.contains("success"));
+        cli.clearOutput();
 
-            cli.pushLineAndWaitForResults("/system-property=" + TEST_RESOURCE_NAME + ":read-attribute(name=value)");
-            System.err.println(cli.getOutput());
-            String readResult = cli.getOutput();
+        cli.pushLineAndWaitForResults("/system-property=" + TEST_RESOURCE_NAME + ":read-attribute(name=value)");
+        String readResult = cli.getOutput();
 
-            assertTrue(readResult.contains("\"outcome\" => \"success\""));
-            System.err.println(cli.getOutput());
-            assertTrue(readResult.contains(expected));
-            cli.clearOutput();
+        assertTrue("expected value not found", readResult.contains(expected));
+        assertTrue("failed to read attribute", readResult.contains("success"));
+        cli.clearOutput();
 
-            cli.pushLineAndWaitForResults("/system-property=" + TEST_RESOURCE_NAME + ":remove");
-            System.err.println(cli.getOutput());
-            assertTrue(cli.getOutput().contains("\"outcome\" => \"success\""));
-            //cli.pushLineAndWaitForResults("quit");
-            //cli.pushLineAndWaitForClose("quit");
-            //boolean closed = cli.ctrlCAndWaitForClose();
-            //assertTrue("Process did not terminate correctly. Output: '" + cli.getOutput() + "'", closed);
-        } finally {
-            cli.destroyProcess();
-        }
+        cli.pushLineAndWaitForResults("/system-property=" + TEST_RESOURCE_NAME + ":remove");
+        assertTrue("failed to remove resource", cli.getOutput().contains("success"));
     }
 
     /**
@@ -210,32 +198,28 @@ public class CliSpecialCharactersTestCase {
      * @param input     property value to set via CLI
      * @param expected  property value expected to be set
      * @param delimiter type of delimiter to use for property name escaping
-     * @throws CommandLineException
+     * @throws Exception
      */
-    private void testNonInteractive(String input, String expected, Delimiters delimiter) throws CommandLineException {
+    private void testNonInteractive(String input, String expected, Delimiters delimiter) throws Exception {
+        removeTestResources();
         final ByteArrayOutputStream cliOut = new ByteArrayOutputStream();
         final CommandContext ctx = CLITestUtil.getCommandContext(cliOut);
         ctx.connectController();
         cliOut.reset();
-        try {
-            ctx.handle("/system-property=" + TEST_RESOURCE_NAME + ":remove");
-        } catch (CommandLineException e) {
-            assertTrue(e.getMessage().contains("not found"));
-        }
-        cliOut.reset();
+
         ctx.handle("/system-property=" + TEST_RESOURCE_NAME +
                 ":add(value=" + delimiter.getStartDelimiter() + input + delimiter.getEndDelimiter() + ")");
         String setOutcome = cliOut.toString();
-        assertTrue(setOutcome.contains("\"outcome\" => \"success\""));
+        assertTrue("failed to add resource", setOutcome.contains("success"));
         cliOut.reset();
         ctx.handle("/system-property=" + TEST_RESOURCE_NAME + ":read-attribute(name=value)");
         String readResult = cliOut.toString();
-        assertTrue(readResult.contains(expected));
-        assertTrue(readResult.contains("\"outcome\" => \"success\""));
+        assertTrue("expected value not found", readResult.contains(expected));
+        assertTrue("failed to read attribute", readResult.contains("success"));
         cliOut.reset();
         ctx.handle("/system-property=" + TEST_RESOURCE_NAME + ":remove");
         String removeResult = cliOut.toString();
-        assertTrue(removeResult.contains("\"outcome\" => \"success\""));
+        assertTrue("failed to remove resource", removeResult.contains("success"));
         ctx.disconnectController();
     }
 
