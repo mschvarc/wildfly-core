@@ -196,7 +196,7 @@ public class CliSpecialCharactersTestCase {
             System.err.println(cli.getOutput());
             assertTrue(cli.getOutput().contains("\"outcome\" => \"success\""));
             //cli.pushLineAndWaitForResults("quit");
-            cli.pushLineAndWaitForClose("quit");
+            //cli.pushLineAndWaitForClose("quit");
             //boolean closed = cli.ctrlCAndWaitForClose();
             //assertTrue("Process did not terminate correctly. Output: '" + cli.getOutput() + "'", closed);
         } finally {
@@ -236,6 +236,7 @@ public class CliSpecialCharactersTestCase {
         ctx.handle("/system-property=" + TEST_RESOURCE_NAME + ":remove");
         String removeResult = cliOut.toString();
         assertTrue(removeResult.contains("\"outcome\" => \"success\""));
+        ctx.disconnectController();
     }
 
     private enum Delimiters {
