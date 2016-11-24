@@ -22,7 +22,9 @@ import org.jboss.as.cli.CommandContext;
 import org.jboss.as.cli.CommandLineException;
 import org.jboss.as.test.integration.management.util.CLITestUtil;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.wildfly.core.testrunner.WildflyTestRunner;
@@ -41,7 +43,7 @@ import static org.junit.Assert.assertTrue;
 @RunWith(WildflyTestRunner.class)
 public class CliSpecialCharactersTestCase {
     private static final String TEST_RESOURCE_NAME = "test_resource_special_chars";
-    private CliProcessWrapper cli;
+    private static CliProcessWrapper cli;
     private final ByteArrayOutputStream cliOut = new ByteArrayOutputStream();
     private CommandContext ctx;
 
@@ -49,10 +51,21 @@ public class CliSpecialCharactersTestCase {
         ctx.handleSafe("/system-property=" + TEST_RESOURCE_NAME + ":remove");
     }
 
-    @Before
-    public void setup() throws Exception {
+    @BeforeClass
+    public static void prepare(){
         cli = new CliProcessWrapper().addCliArgument("-c");
         cli.executeInteractive();
+    }
+
+    @AfterClass
+    public static void destroy() throws IOException {
+        cli.pushLineAndWaitForResults("disconnect");
+        cli.pushLineAndWaitForClose("quit");
+        cli.destroyProcess();
+    }
+
+    @Before
+    public void setup() throws Exception {
         ctx = CLITestUtil.getCommandContext(cliOut);
         ctx.connectController();
         removeTestResources();
@@ -61,8 +74,6 @@ public class CliSpecialCharactersTestCase {
     @After
     public void cleanup() throws Exception {
         removeTestResources();
-        cli.ctrlCAndWaitForClose();
-        cli.destroyProcess();
         ctx.disconnectController();
         ctx.terminateSession();
     }
