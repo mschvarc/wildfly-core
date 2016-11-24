@@ -49,19 +49,6 @@ public class CliSpecialCharactersTestCase {
         ctx.handleSafe("/system-property=" + TEST_RESOURCE_NAME + ":remove");
     }
 
-    @Test
-    public void testLoop() throws Exception {
-        for (int i = 0; i < 10; i++) {
-            testBraces();
-            testCommasInDoubleQuotes();
-            testParenthesis();
-            testSingleQuotes();
-            testWhitespaceInMiddle();
-            testWhitespaceTrimming();
-        }
-    }
-
-
     @Before
     public void setup() throws Exception {
         cli = new CliProcessWrapper().addCliArgument("-c");
