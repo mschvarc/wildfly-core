@@ -19,6 +19,7 @@
 package org.jboss.as.test.integration.management.cli;
 
 import org.jboss.as.cli.CommandContext;
+import org.jboss.as.cli.CommandLineException;
 import org.jboss.as.test.integration.management.util.CLITestUtil;
 import org.junit.After;
 import org.junit.Before;
@@ -27,6 +28,7 @@ import org.junit.runner.RunWith;
 import org.wildfly.core.testrunner.WildflyTestRunner;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 
 import static org.junit.Assert.assertTrue;
 
@@ -40,17 +42,11 @@ import static org.junit.Assert.assertTrue;
 public class CliSpecialCharactersTestCase {
     private static final String TEST_RESOURCE_NAME = "test_resource_special_chars";
     private CliProcessWrapper cli;
+    private final ByteArrayOutputStream cliOut = new ByteArrayOutputStream();
+    private CommandContext ctx;
 
-    private void removeTestResources() throws Exception {
-        final ByteArrayOutputStream cliOut = new ByteArrayOutputStream();
-        final CommandContext ctx = CLITestUtil.getCommandContext(cliOut);
-        try {
-            ctx.connectController();
-            ctx.handleSafe("/system-property=" + TEST_RESOURCE_NAME + ":remove");
-            ctx.disconnectController();
-        } finally {
-            ctx.terminateSession();
-        }
+    private void removeTestResources() {
+        ctx.handleSafe("/system-property=" + TEST_RESOURCE_NAME + ":remove");
     }
 
     @Test
@@ -68,9 +64,11 @@ public class CliSpecialCharactersTestCase {
 
     @Before
     public void setup() throws Exception {
-        removeTestResources();
         cli = new CliProcessWrapper().addCliArgument("-c");
         cli.executeInteractive();
+        ctx = CLITestUtil.getCommandContext(cliOut);
+        ctx.connectController();
+        removeTestResources();
     }
 
     @After
@@ -78,6 +76,8 @@ public class CliSpecialCharactersTestCase {
         removeTestResources();
         cli.ctrlCAndWaitForClose();
         cli.destroyProcess();
+        ctx.disconnectController();
+        ctx.terminateSession();
     }
 
     /**
@@ -170,9 +170,9 @@ public class CliSpecialCharactersTestCase {
      * @param input     property value to set via CLI
      * @param expected  property value expected to be set
      * @param delimiter type of delimiter to use for property name escaping
-     * @throws Exception
+     * @throws IOException
      */
-    private void testInteractive(String input, String expected, Delimiters delimiter) throws Exception {
+    private void testInteractive(String input, String expected, Delimiters delimiter) throws IOException {
         removeTestResources();
         cli.clearOutput();
         cli.pushLineAndWaitForResults("/system-property=" + TEST_RESOURCE_NAME +
@@ -198,15 +198,11 @@ public class CliSpecialCharactersTestCase {
      * @param input     property value to set via CLI
      * @param expected  property value expected to be set
      * @param delimiter type of delimiter to use for property name escaping
-     * @throws Exception
+     * @throws CommandLineException
      */
-    private void testNonInteractive(String input, String expected, Delimiters delimiter) throws Exception {
+    private void testNonInteractive(String input, String expected, Delimiters delimiter) throws CommandLineException {
         removeTestResources();
-        final ByteArrayOutputStream cliOut = new ByteArrayOutputStream();
-        final CommandContext ctx = CLITestUtil.getCommandContext(cliOut);
-        ctx.connectController();
         cliOut.reset();
-
         ctx.handle("/system-property=" + TEST_RESOURCE_NAME +
                 ":add(value=" + delimiter.getStartDelimiter() + input + delimiter.getEndDelimiter() + ")");
         String setOutcome = cliOut.toString();
@@ -220,7 +216,6 @@ public class CliSpecialCharactersTestCase {
         ctx.handle("/system-property=" + TEST_RESOURCE_NAME + ":remove");
         String removeResult = cliOut.toString();
         assertTrue("failed to remove resource", removeResult.contains("success"));
-        ctx.disconnectController();
     }
 
     private enum Delimiters {
