@@ -18,19 +18,13 @@
 
 package org.jboss.as.test.integration.management.cli;
 
-import org.jboss.as.cli.CommandContext;
 import org.jboss.as.cli.CommandLineException;
-import org.jboss.as.test.integration.management.util.CLITestUtil;
+import org.jboss.as.test.integration.management.util.CLIWrapper;
 import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.wildfly.core.testrunner.WildflyTestRunner;
-
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 
 import static org.junit.Assert.assertTrue;
 
@@ -43,40 +37,22 @@ import static org.junit.Assert.assertTrue;
 @RunWith(WildflyTestRunner.class)
 public class CliSpecialCharactersTestCase {
     private static final String TEST_RESOURCE_NAME = "test_resource_special_chars";
-    private static CliProcessWrapper cli = new CliProcessWrapper();
-    private final ByteArrayOutputStream cliOut = new ByteArrayOutputStream();
-    private CommandContext ctx;
+    private CLIWrapper cli;
 
     private void removeTestResources() {
-        ctx.handleSafe("/system-property=" + TEST_RESOURCE_NAME + ":remove");
-    }
-
-    @BeforeClass
-    public static void prepare(){
-        //cli = new CliProcessWrapper();
-                //.addCliArgument("-c");
-        cli.executeInteractive();
-    }
-
-    @AfterClass
-    public static void destroy() throws IOException {
-        //cli.pushLineAndWaitForResults("disconnect");
-        //cli.pushLineAndWaitForClose("quit");
-        cli.destroyProcess();
+        cli.sendLine("/system-property=" + TEST_RESOURCE_NAME + ":remove", true);
     }
 
     @Before
     public void setup() throws Exception {
-        ctx = CLITestUtil.getCommandContext(cliOut);
-        ctx.connectController();
+        cli = new CLIWrapper(true, null, System.in);
         removeTestResources();
     }
 
     @After
     public void cleanup() throws Exception {
         removeTestResources();
-        ctx.disconnectController();
-        ctx.terminateSession();
+        cli.close();
     }
 
     /**
@@ -87,9 +63,9 @@ public class CliSpecialCharactersTestCase {
      */
     @Test
     public void testWhitespaceInMiddle() throws Exception {
-        testInteractiveAndNonInteractive("Hello World!", "Hello World!", Delimiters.DOUBLE_QUOTE);
-        testInteractiveAndNonInteractive("Hello World!", "Hello World!", Delimiters.CURLY_BRACE);
-        testInteractiveAndNonInteractive("Hello\\ World!", "Hello World!", Delimiters.NONE);
+        testSetResourceValue("Hello World!", "Hello World!", Delimiters.DOUBLE_QUOTE);
+        testSetResourceValue("Hello World!", "Hello World!", Delimiters.CURLY_BRACE);
+        testSetResourceValue("Hello\\ World!", "Hello World!", Delimiters.NONE);
     }
 
     /**
@@ -100,9 +76,9 @@ public class CliSpecialCharactersTestCase {
      */
     @Test
     public void testWhitespaceTrimming() throws Exception {
-        testInteractiveAndNonInteractive("   Hello World!   ", "   Hello World!   ", Delimiters.DOUBLE_QUOTE);
-        testInteractiveAndNonInteractive("   Hello World!   ", "Hello World!", Delimiters.CURLY_BRACE);
-        testInteractiveAndNonInteractive("   Hello\\ World!   ", "Hello World!", Delimiters.NONE);
+        testSetResourceValue("   Hello World!   ", "   Hello World!   ", Delimiters.DOUBLE_QUOTE);
+        testSetResourceValue("   Hello World!   ", "Hello World!", Delimiters.CURLY_BRACE);
+        testSetResourceValue("   Hello\\ World!   ", "Hello World!", Delimiters.NONE);
     }
 
     /**
@@ -112,9 +88,9 @@ public class CliSpecialCharactersTestCase {
      */
     @Test
     public void testSingleQuotes() throws Exception {
-        testInteractiveAndNonInteractive("It's", "It's", Delimiters.DOUBLE_QUOTE);
-        testInteractiveAndNonInteractive("It\\'s", "It's", Delimiters.NONE);
-        testInteractiveAndNonInteractive("''It's''", "''It's''", Delimiters.DOUBLE_QUOTE);
+        testSetResourceValue("It's", "It's", Delimiters.DOUBLE_QUOTE);
+        testSetResourceValue("It\\'s", "It's", Delimiters.NONE);
+        testSetResourceValue("''It's''", "''It's''", Delimiters.DOUBLE_QUOTE);
     }
 
     /**
@@ -124,8 +100,8 @@ public class CliSpecialCharactersTestCase {
      */
     @Test
     public void testCommasInDoubleQuotes() throws Exception {
-        testInteractiveAndNonInteractive("Last,First", "Last,First", Delimiters.DOUBLE_QUOTE);
-        testInteractiveAndNonInteractive(",,,A,B,C,D,E,F,,,", ",,,A,B,C,D,E,F,,,", Delimiters.DOUBLE_QUOTE);
+        testSetResourceValue("Last,First", "Last,First", Delimiters.DOUBLE_QUOTE);
+        testSetResourceValue(",,,A,B,C,D,E,F,,,", ",,,A,B,C,D,E,F,,,", Delimiters.DOUBLE_QUOTE);
     }
 
     /**
@@ -135,9 +111,9 @@ public class CliSpecialCharactersTestCase {
      */
     @Test
     public void testParenthesis() throws Exception {
-        testInteractiveAndNonInteractive("one(1)", "one(1)", Delimiters.DOUBLE_QUOTE);
-        testInteractiveAndNonInteractive("one(1)", "one(1)", Delimiters.CURLY_BRACE);
-        testInteractiveAndNonInteractive("one\\(1\\)", "one(1)", Delimiters.NONE);
+        testSetResourceValue("one(1)", "one(1)", Delimiters.DOUBLE_QUOTE);
+        testSetResourceValue("one(1)", "one(1)", Delimiters.CURLY_BRACE);
+        testSetResourceValue("one\\(1\\)", "one(1)", Delimiters.NONE);
     }
 
     /**
@@ -147,53 +123,9 @@ public class CliSpecialCharactersTestCase {
      */
     @Test
     public void testBraces() throws Exception {
-        testInteractiveAndNonInteractive("{braces}", "{braces}", Delimiters.DOUBLE_QUOTE);
+        testSetResourceValue("{braces}", "{braces}", Delimiters.DOUBLE_QUOTE);
     }
 
-    /**
-     * Tests setting and reading resource value in both interactive and non-interactive
-     *
-     * @param input     property value to set via CLI
-     * @param expected  property value expected to be set
-     * @param delimiter type of delimiter to use for property name escaping
-     * @throws Exception
-     */
-    private void testInteractiveAndNonInteractive(String input, String expected, Delimiters delimiter) throws Exception {
-        testInteractive(input, expected, delimiter);
-        testNonInteractive(input, expected, delimiter);
-    }
-
-    /**
-     * Tests setting resource value and verifies it was saved successfully in interactive (user) mode
-     *
-     * @param input     property value to set via CLI
-     * @param expected  property value expected to be set
-     * @param delimiter type of delimiter to use for property name escaping
-     * @throws IOException
-     */
-    private synchronized void testInteractive(String input, String expected, Delimiters delimiter) throws IOException {
-        //cli.destroyProcess();
-        //cli.executeInteractive();
-        cli.pushLineAndWaitForResults("connect");
-        removeTestResources();
-        cli.clearOutput();
-        cli.pushLineAndWaitForResults("/system-property=" + TEST_RESOURCE_NAME +
-                ":add(value=" + delimiter.getStartDelimiter() + input + delimiter.getEndDelimiter() + ")");
-        String writeResult = cli.getOutput();
-        assertTrue("failed to add resource", writeResult.contains("success"));
-        cli.clearOutput();
-
-        cli.pushLineAndWaitForResults("/system-property=" + TEST_RESOURCE_NAME + ":read-attribute(name=value)");
-        String readResult = cli.getOutput();
-
-        assertTrue("expected value not found", readResult.contains(expected));
-        assertTrue("failed to read attribute", readResult.contains("success"));
-        cli.clearOutput();
-
-        cli.pushLineAndWaitForResults("/system-property=" + TEST_RESOURCE_NAME + ":remove");
-        assertTrue("failed to remove resource", cli.getOutput().contains("success"));
-        //cli.destroyProcess();
-    }
 
     /**
      * Tests setting resource value and verifies it was saved successfully in non-interactive mode
@@ -203,21 +135,18 @@ public class CliSpecialCharactersTestCase {
      * @param delimiter type of delimiter to use for property name escaping
      * @throws CommandLineException
      */
-    private void testNonInteractive(String input, String expected, Delimiters delimiter) throws CommandLineException {
+    private void testSetResourceValue(String input, String expected, Delimiters delimiter) throws CommandLineException {
         removeTestResources();
-        cliOut.reset();
-        ctx.handle("/system-property=" + TEST_RESOURCE_NAME +
+        cli.sendLine("/system-property=" + TEST_RESOURCE_NAME +
                 ":add(value=" + delimiter.getStartDelimiter() + input + delimiter.getEndDelimiter() + ")");
-        String setOutcome = cliOut.toString();
+        String setOutcome = cli.readOutput();
         assertTrue("failed to add resource", setOutcome.contains("success"));
-        cliOut.reset();
-        ctx.handle("/system-property=" + TEST_RESOURCE_NAME + ":read-attribute(name=value)");
-        String readResult = cliOut.toString();
+        cli.sendLine("/system-property=" + TEST_RESOURCE_NAME + ":read-attribute(name=value)");
+        String readResult = cli.readOutput();
         assertTrue("expected value not found", readResult.contains(expected));
         assertTrue("failed to read attribute", readResult.contains("success"));
-        cliOut.reset();
-        ctx.handle("/system-property=" + TEST_RESOURCE_NAME + ":remove");
-        String removeResult = cliOut.toString();
+        cli.sendLine("/system-property=" + TEST_RESOURCE_NAME + ":remove");
+        String removeResult = cli.readOutput();
         assertTrue("failed to remove resource", removeResult.contains("success"));
     }
 
