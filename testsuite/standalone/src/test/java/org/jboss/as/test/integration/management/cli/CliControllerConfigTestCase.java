@@ -288,6 +288,24 @@ public class CliControllerConfigTestCase {
         }
     }
 
+    @Test
+    public void testImplicitSettings() {
+        JbossCliConfig jbossCliConfig = new JbossCliConfig(); //empty config
+        jbossCliConfig.writeJbossCliConfig(tempJbossConfigFile);
+        CliProcessWrapper cli = getTestCliProcessWrapper(false);
+        try {
+            cli.executeInteractive();
+            cli.pushLineAndWaitForResults("connect");
+            boolean returnState = cli.pushLineAndWaitForResults(READ_SERVER_STATE, CONNECTED_PROMPT);
+            assertTrue("Failing output:" + cli.getOutput(), returnState);
+        } catch (Exception ex) {
+            fail(ex.getLocalizedMessage());
+        } finally {
+            cli.destroyProcess();
+        }
+    }
+
+
     /**
      * Returns CliProcessWrapper with settings loaded from tempJbossConfigFile
      *
