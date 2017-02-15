@@ -288,11 +288,42 @@ public class CliControllerConfigTestCase {
         }
     }
 
+    /**
+     * Tests implicit CLI settings with empty config file,
+     * should attempt connection to remote+http://localhost:9990
+     */
     @Test
     public void testImplicitSettings() {
         JbossCliConfig jbossCliConfig = new JbossCliConfig(); //empty config
         jbossCliConfig.writeJbossCliConfig(tempJbossConfigFile);
         CliProcessWrapper cli = getTestCliProcessWrapper(false);
+        try {
+            System.err.println(TestSuiteEnvironment.getHttpAddress() + " | "
+                    + TestSuiteEnvironment.getHttpUrl()
+                    + " | " + TestSuiteEnvironment.getHttpPort()
+                    + " | " + TestSuiteEnvironment.getServerPort());
+            cli.executeInteractive();
+            cli.pushLineAndWaitForResults("connect");
+            boolean returnState = cli.pushLineAndWaitForResults(READ_SERVER_STATE, CONNECTED_PROMPT);
+            assertTrue("Failing output:" + cli.getOutput(), returnState);
+        } catch (Exception ex) {
+            fail(ex.getLocalizedMessage());
+        } finally {
+            cli.destroyProcess();
+        }
+    }
+
+    /**
+     * Tests implicit CLI settings with empty config file,
+     * should attempt connection to remote+http://localhost:9990
+     */
+    @Test
+    public void testImplicitSettings2() {
+        JbossCliConfig jbossCliConfig = new JbossCliConfig(); //empty config
+        jbossCliConfig.writeJbossCliConfig(tempJbossConfigFile);
+        CliProcessWrapper cli = new CliProcessWrapper()
+                .addCliArgument("-Djboss.cli.config=" + tempJbossConfigFile.getAbsolutePath())
+                .addCliArgument("--echo-command");
         try {
             cli.executeInteractive();
             cli.pushLineAndWaitForResults("connect");
